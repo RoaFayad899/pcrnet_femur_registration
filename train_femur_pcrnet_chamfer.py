@@ -12,7 +12,7 @@ from pcrnet.losses.chamfer_distance import ChamferDistanceLoss
 # SETTINGS
 # ==========================================================
 
-dataset_dir = r"C:\data_unibas\pcrnet_dataset_partial_fragment_to_full_femur"
+dataset_dir = "/home/roa.fayad/pcrnet_dataset_partial_fragment_to_full_femur"  #dataset_dir = r"C:\data_unibas\pcrnet_dataset_partial_fragment_to_full_femur"
 
 checkpoint_dir = r"C:\data_unibas\pcrnet_checkpoints_chamfer"
 os.makedirs(checkpoint_dir, exist_ok=True)
