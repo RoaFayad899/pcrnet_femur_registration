@@ -11,15 +11,14 @@ from pcrnet.losses.chamfer_distance import ChamferDistanceLoss
 # SETTINGS FOR LOCAL TEST ONLY
 # ==========================================================
 
-dataset_dir = r"C:\data_unibas\pcrnet_dataset_partial_fragment_to_full_femur"
+dataset_dir = "/home/roa.fayad/pcrnet_dataset_partial_fragment_to_full_femur"    ### r"C:\data_unibas\pcrnet_dataset_partial_fragment_to_full_femur"
 
 epochs = 2
 batch_size = 2
 learning_rate = 1e-3
 max_iteration = 1
 
-checkpoint_dir = r"C:\data_unibas\pcrnet_checkpoints_test"
-os.makedirs(checkpoint_dir, exist_ok=True)
+checkpoint_dir = "/home/roa.fayad/pcrnet_checkpoints_test"  ####r"C:\data_unibas\pcrnet_checkpoints_test"
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Using device:", device)

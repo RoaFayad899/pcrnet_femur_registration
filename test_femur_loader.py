@@ -3,7 +3,7 @@ from torch.utils.data import DataLoader
 from pcrnet.data_utils import FemurPCRNetDataset
 
 
-dataset_dir = r"C:\data_unibas\pcrnet_dataset_partial_fragment_to_full_femur"
+dataset_dir = "/home/roa.fayad/pcrnet_dataset_partial_fragment_to_full_femur"  #r"C:\data_unibas\pcrnet_dataset_partial_fragment_to_full_femur"
 
 
 train_dataset = FemurPCRNetDataset(

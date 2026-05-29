@@ -1,7 +1,7 @@
 import torch
 
 checkpoint = torch.load(
-    r"C:\data_unibas\pcrnet_checkpoints_test\pcrnet_epoch_2.pth",
+    "/home/roa.fayad/pcrnet_checkpoints_chamfer/best_model.pth",      ###r"C:\data_unibas\pcrnet_checkpoints_test\pcrnet_epoch_2.pth"
     map_location="cpu"
 )
 

@@ -11,7 +11,7 @@ from pcrnet.losses.chamfer_distance import ChamferDistanceLoss
 # ==========================================================
 
 dataset = FemurPCRNetDataset(
-    dataset_dir=r"C:\data_unibas\pcrnet_dataset_partial_fragment_to_full_femur",
+    dataset_dir= "/home/roa.fayad/pcrnet_dataset_partial_fragment_to_full_femur",    ### r"C:\data_unibas\pcrnet_dataset_partial_fragment_to_full_femur"
     split="train"
 )
 
