@@ -19,10 +19,10 @@ os.makedirs(checkpoint_dir, exist_ok=True)
 
 log_file = os.path.join(checkpoint_dir, "training_log.csv")
 
-epochs = 2  ####100 or 2
-batch_size = 2  #######16 or 2
+epochs = 100  ####100 or 2
+batch_size = 16  #######16 or 2
 learning_rate = 1e-3
-max_iteration = 1 ##########8 or 1
+max_iteration = 8 ##########8 or 1
 
 save_every = 5
 
