@@ -33,7 +33,7 @@ print("Using device:", device)
 
 def rotation_error_degrees(R_pred, R_gt):
     """
-    Computes rotation error in degrees between predicted and GT rotation.
+    Rotation error in degrees.
     R_pred, R_gt: [B, 3, 3]
     """
     R_diff = torch.bmm(R_pred, R_gt.transpose(1, 2))
@@ -43,20 +43,37 @@ def rotation_error_degrees(R_pred, R_gt):
     cos_angle = torch.clamp(cos_angle, -1.0, 1.0)
 
     angle = torch.acos(cos_angle)
-    angle_deg = angle * 180.0 / np.pi
-
-    return angle_deg
+    return angle * 180.0 / np.pi
 
 
 def translation_error_mm(t_pred, t_gt):
     """
-    Computes translation error in mm.
-    t_pred: [B, 1, 3]
+    t_pred: [B, 1, 3] or [B, 3]
     t_gt:   [B, 3]
     """
-    t_pred = t_pred.squeeze(1)
+    if t_pred.ndim == 3:
+        t_pred = t_pred.squeeze(1)
+
     return torch.linalg.norm(t_pred - t_gt, dim=1)
 
+
+def invert_transform(R, t):
+    """
+    Invert rigid transform.
+
+    If:
+        x2 = R x1 + t
+
+    then inverse:
+        x1 = R_inv x2 + t_inv
+
+    R: [B, 3, 3]
+    t: [B, 3]
+    """
+    R_inv = R.transpose(1, 2)
+    t_inv = -torch.bmm(R_inv, t.unsqueeze(-1)).squeeze(-1)
+
+    return R_inv, t_inv
 
 # ==========================================================
 # DATASET
@@ -111,8 +128,11 @@ criterion = ChamferDistanceLoss()
 
 chamfer_before_all = []
 chamfer_after_all = []
-rotation_errors_all = []
-translation_errors_all = []
+rotation_errors_gt_all = []
+translation_errors_gt_all = []
+
+rotation_errors_inv_gt_all = []
+translation_errors_inv_gt_all = []
 
 with torch.no_grad():
 
@@ -141,34 +161,68 @@ with torch.no_grad():
         # Chamfer after registration
         loss_after = criterion(target, transformed_source)
 
-        # Transformation errors
-        rot_err = rotation_error_degrees(R_pred, R_gt)
-        trans_err = translation_error_mm(t_pred, t_gt)
+        # ----------------------------------------------------------
+        # Transformation errors against stored GT
+        # ----------------------------------------------------------
 
+        rot_err_gt = rotation_error_degrees(R_pred, R_gt)
+        trans_err_gt = translation_error_mm(t_pred, t_gt)
+
+        # ----------------------------------------------------------
+        # Transformation errors against inverse GT
+        # ----------------------------------------------------------
+
+        R_gt_inv, t_gt_inv = invert_transform(R_gt, t_gt)
+
+        rot_err_inv_gt = rotation_error_degrees(R_pred, R_gt_inv)
+        trans_err_inv_gt = translation_error_mm(t_pred, t_gt_inv)
+
+        # Store
         chamfer_before_all.append(loss_before.item())
         chamfer_after_all.append(loss_after.item())
-        rotation_errors_all.extend(rot_err.cpu().numpy())
-        translation_errors_all.extend(trans_err.cpu().numpy())
+
+        rotation_errors_gt_all.extend(rot_err_gt.cpu().numpy())
+        translation_errors_gt_all.extend(trans_err_gt.cpu().numpy())
+
+        rotation_errors_inv_gt_all.extend(rot_err_inv_gt.cpu().numpy())
+        translation_errors_inv_gt_all.extend(trans_err_inv_gt.cpu().numpy())
 
 
 # ==========================================================
 # RESULTS
 # ==========================================================
 
-rotation_errors_all = np.array(rotation_errors_all)
-translation_errors_all = np.array(translation_errors_all)
+rotation_errors_gt_all = np.array(rotation_errors_gt_all)
+translation_errors_gt_all = np.array(translation_errors_gt_all)
+
+rotation_errors_inv_gt_all = np.array(rotation_errors_inv_gt_all)
+translation_errors_inv_gt_all = np.array(translation_errors_inv_gt_all)
 
 print("\n========== TEST RESULTS ==========")
 
 print(f"Chamfer before registration: {np.mean(chamfer_before_all):.6f}")
 print(f"Chamfer after registration:  {np.mean(chamfer_after_all):.6f}")
 
+print("\n========== AGAINST STORED GT ==========")
+
 print("\nRotation error [degrees]:")
-print(f"Mean:   {rotation_errors_all.mean():.6f}")
-print(f"Median: {np.median(rotation_errors_all):.6f}")
-print(f"Std:    {rotation_errors_all.std():.6f}")
+print(f"Mean:   {rotation_errors_gt_all.mean():.6f}")
+print(f"Median: {np.median(rotation_errors_gt_all):.6f}")
+print(f"Std:    {rotation_errors_gt_all.std():.6f}")
 
 print("\nTranslation error [mm]:")
-print(f"Mean:   {translation_errors_all.mean():.6f}")
-print(f"Median: {np.median(translation_errors_all):.6f}")
-print(f"Std:    {translation_errors_all.std():.6f}")
+print(f"Mean:   {translation_errors_gt_all.mean():.6f}")
+print(f"Median: {np.median(translation_errors_gt_all):.6f}")
+print(f"Std:    {translation_errors_gt_all.std():.6f}")
+
+print("\n========== AGAINST INVERSE GT ==========")
+
+print("\nRotation error [degrees]:")
+print(f"Mean:   {rotation_errors_inv_gt_all.mean():.6f}")
+print(f"Median: {np.median(rotation_errors_inv_gt_all):.6f}")
+print(f"Std:    {rotation_errors_inv_gt_all.std():.6f}")
+
+print("\nTranslation error [mm]:")
+print(f"Mean:   {translation_errors_inv_gt_all.mean():.6f}")
+print(f"Median: {np.median(translation_errors_inv_gt_all):.6f}")
+print(f"Std:    {translation_errors_inv_gt_all.std():.6f}")
