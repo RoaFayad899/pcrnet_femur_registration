@@ -69,6 +69,27 @@ def invert_transform(T):
     T_inv[:3, 3] = -R.T @ t
     return T_inv
 
+def translation_mse(t_pred, t_gt):
+    """
+    Mean squared error between two translation vectors.
+    """
+    return np.mean((t_pred - t_gt) ** 2)
+
+
+def rotation_geodesic_distance(R_pred, R_gt):
+    """
+    Geodesic distance between two rotation matrices, in radians and degrees.
+    """
+    R_diff = R_pred.T @ R_gt
+
+    trace = np.trace(R_diff)
+    cos_theta = (trace - 1.0) / 2.0
+    cos_theta = np.clip(cos_theta, -1.0, 1.0)
+
+    theta_rad = np.arccos(cos_theta)
+    theta_deg = np.rad2deg(theta_rad)
+
+    return theta_rad, theta_deg
 
 def make_mesh(vertices, faces, color):
     mesh = o3d.geometry.TriangleMesh()
@@ -244,6 +265,24 @@ T_extra = build_transform_matrix(
 )
 
 T_gt = invert_transform(T_extra)
+
+R_gt = T_gt[:3, :3]
+t_gt = T_gt[:3, 3]
+
+R_extra_inv = T_extra[:3, :3].T
+t_extra_inv = -R_extra_inv @ T_extra[:3, 3]
+
+rot_geo_rad, rot_geo_deg = rotation_geodesic_distance(R_gt, R_extra_inv)
+trans_mse = translation_mse(t_gt, t_extra_inv)
+
+print("\n========== GT ROTATION / TRANSLATION LOSS CHECK ==========")
+print("Rotation geodesic distance between T_gt and inverse(T_extra):")
+print("Radians:", rot_geo_rad)
+print("Degrees:", rot_geo_deg)
+
+print("\nTranslation MSE between T_gt and inverse(T_extra):")
+print(trans_mse)
+
 
 source_corrected = apply_transform(
     source_misaligned,

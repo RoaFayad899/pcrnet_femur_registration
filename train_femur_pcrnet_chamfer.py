@@ -5,7 +5,7 @@ from torch.utils.data import DataLoader
 
 from pcrnet.data_utils import FemurPCRNetDataset
 from pcrnet.models.pcrnet import iPCRNet
-from pcrnet.losses.one_sided_chamfer_distance import OneSidedChamferDistanceLoss
+from pcrnet.losses.geodesic_translation_loss import GeodesicTranslationLoss
 
 
 # ==========================================================
@@ -65,7 +65,7 @@ val_loader = DataLoader(
 
 model = iPCRNet().to(device)
 
-criterion = OneSidedChamferDistanceLoss()
+criterion = GeodesicTranslationLoss(lambda_translation=1.0)
 
 optimizer = torch.optim.Adam(
     model.parameters(),
@@ -111,6 +111,9 @@ for epoch in range(epochs):
         source = batch["source"].to(device)
         target = batch["target"].to(device)
 
+        R_gt = batch["R_gt"].to(device)
+        t_gt = batch["t_gt"].to(device)
+
         optimizer.zero_grad()
 
         result = model(
@@ -119,12 +122,17 @@ for epoch in range(epochs):
             max_iteration=max_iteration
         )
 
-        transformed_source = result["transformed_source"]
+        R_pred = result["est_R"]
+        t_pred = result["est_t"]
 
-        loss = criterion(
-            target,
-            transformed_source
+        loss_dict = criterion(
+            R_pred,
+            t_pred,
+            R_gt,
+            t_gt
         )
+
+        loss = loss_dict["total_loss"]
 
         loss.backward()
         optimizer.step()
@@ -153,18 +161,26 @@ for epoch in range(epochs):
             source = batch["source"].to(device)
             target = batch["target"].to(device)
 
+            R_gt = batch["R_gt"].to(device)
+            t_gt = batch["t_gt"].to(device)
+
             result = model(
                 template=target,
                 source=source,
                 max_iteration=max_iteration
             )
 
-            transformed_source = result["transformed_source"]
+            R_pred = result["est_R"]
+            t_pred = result["est_t"]
 
-            val_loss = criterion(
-                target,
-                transformed_source
+            loss_dict = criterion(
+                R_pred,
+                t_pred,
+                R_gt,
+                t_gt
             )
+
+            loss = loss_dict["total_loss"]
 
             val_loss_total += val_loss.item()
 

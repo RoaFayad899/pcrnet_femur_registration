@@ -4,7 +4,7 @@ from torch.utils.data import DataLoader
 
 from pcrnet.data_utils import FemurPCRNetDataset
 from pcrnet.models.pcrnet import iPCRNet
-from pcrnet.losses.chamfer_distance import ChamferDistanceLoss
+from pcrnet.losses.geodesic_translation_loss import GeodesicTranslationLoss
 
 
 # ==========================================================
@@ -12,7 +12,7 @@ from pcrnet.losses.chamfer_distance import ChamferDistanceLoss
 # ==========================================================
 
 dataset_dir = "/home/roa.fayad/pcrnet_dataset_partial_fragment_to_full_femur"
-checkpoint_path = "/home/roa.fayad/pcrnet_checkpoints_chamfer/best_model.pth"
+checkpoint_path = "/home/roa.fayad/pcrnet_checkpoints_geodesic_translation/best_model.pth"
 
 
 # ==========================================================
@@ -21,6 +21,7 @@ checkpoint_path = "/home/roa.fayad/pcrnet_checkpoints_chamfer/best_model.pth"
 
 batch_size = 16
 max_iteration = 8
+lambda_translation = 1.0
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Using device:", device)
@@ -30,56 +31,31 @@ print("Using device:", device)
 # HELPERS
 # ==========================================================
 
-def apply_transform(points, R, t):
-    """
-    Apply rigid transform to point cloud.
-
-    points: [B, N, 3]
-    R:      [B, 3, 3]
-    t:      [B, 3] or [B, 1, 3]
-    """
-    if t.ndim == 2:
-        t = t.unsqueeze(1)
-
-    return torch.bmm(points, R.transpose(1, 2)) + t
-
-
 def rotation_error_degrees(R_pred, R_gt):
-    """
-    Rotation error in degrees.
-    R_pred, R_gt: [B, 3, 3]
-    """
-    R_diff = torch.bmm(R_pred, R_gt.transpose(1, 2))
+    R_diff = torch.bmm(R_pred.transpose(1, 2), R_gt)
 
     trace = R_diff[:, 0, 0] + R_diff[:, 1, 1] + R_diff[:, 2, 2]
-    cos_angle = (trace - 1.0) / 2.0
-    cos_angle = torch.clamp(cos_angle, -1.0, 1.0)
+    cos_theta = (trace - 1.0) / 2.0
+    cos_theta = torch.clamp(cos_theta, -1.0, 1.0)
 
-    angle = torch.acos(cos_angle)
-    return angle * 180.0 / np.pi
+    theta_rad = torch.acos(cos_theta)
+    theta_deg = theta_rad * 180.0 / np.pi
+
+    return theta_rad, theta_deg
 
 
 def translation_error_mm(t_pred, t_gt):
-    """
-    t_pred: [B, 1, 3] or [B, 3]
-    t_gt:   [B, 3]
-    """
     if t_pred.ndim == 3:
         t_pred = t_pred.squeeze(1)
 
     return torch.linalg.norm(t_pred - t_gt, dim=1)
 
 
-def invert_transform(R, t):
-    """
-    Invert rigid transform.
-    R: [B, 3, 3]
-    t: [B, 3]
-    """
-    R_inv = R.transpose(1, 2)
-    t_inv = -torch.bmm(R_inv, t.unsqueeze(-1)).squeeze(-1)
+def translation_mse_per_sample(t_pred, t_gt):
+    if t_pred.ndim == 3:
+        t_pred = t_pred.squeeze(1)
 
-    return R_inv, t_inv
+    return torch.mean((t_pred - t_gt) ** 2, dim=1)
 
 
 # ==========================================================
@@ -126,23 +102,20 @@ print("max_iteration:", checkpoint["max_iteration"])
 # LOSS
 # ==========================================================
 
-criterion = ChamferDistanceLoss()
+criterion = GeodesicTranslationLoss(
+    lambda_translation=lambda_translation
+)
 
 
 # ==========================================================
 # EVALUATION
 # ==========================================================
 
-chamfer_before_all = []
-chamfer_after_model_all = []
-chamfer_after_gt_all = []
-chamfer_after_inv_gt_all = []
-
-rotation_errors_gt_all = []
-translation_errors_gt_all = []
-
-rotation_errors_inv_gt_all = []
-translation_errors_inv_gt_all = []
+total_losses = []
+rotation_losses_rad = []
+rotation_errors_deg = []
+translation_mse_values = []
+translation_errors_mm = []
 
 with torch.no_grad():
 
@@ -154,106 +127,74 @@ with torch.no_grad():
         R_gt = batch["R_gt"].to(device)
         t_gt = batch["t_gt"].to(device)
 
-        # ----------------------------------------------------------
-        # Chamfer before registration
-        # ----------------------------------------------------------
-
-        loss_before = criterion(target, source)
-
-        # ----------------------------------------------------------
-        # Apply stored GT to source
-        # ----------------------------------------------------------
-
-        source_gt = apply_transform(source, R_gt, t_gt)
-        loss_gt = criterion(target, source_gt)
-
-        # ----------------------------------------------------------
-        # Apply inverse GT to source
-        # ----------------------------------------------------------
-
-        R_gt_inv, t_gt_inv = invert_transform(R_gt, t_gt)
-        source_inv_gt = apply_transform(source, R_gt_inv, t_gt_inv)
-        loss_inv_gt = criterion(target, source_inv_gt)
-
-        # ----------------------------------------------------------
-        # Model prediction
-        # ----------------------------------------------------------
-
         result = model(
             template=target,
             source=source,
             max_iteration=max_iteration
         )
 
-        transformed_source = result["transformed_source"]
         R_pred = result["est_R"]
         t_pred = result["est_t"]
 
-        loss_after_model = criterion(target, transformed_source)
+        loss_dict = criterion(
+            R_pred,
+            t_pred,
+            R_gt,
+            t_gt
+        )
 
-        # ----------------------------------------------------------
-        # Transformation errors
-        # ----------------------------------------------------------
+        total_loss = loss_dict["total_loss"]
+        rotation_loss = loss_dict["rotation_loss"]
+        translation_loss = loss_dict["translation_loss"]
 
-        rot_err_gt = rotation_error_degrees(R_pred, R_gt)
-        trans_err_gt = translation_error_mm(t_pred, t_gt)
+        rot_rad, rot_deg = rotation_error_degrees(R_pred, R_gt)
+        trans_err = translation_error_mm(t_pred, t_gt)
+        trans_mse = translation_mse_per_sample(t_pred, t_gt)
 
-        rot_err_inv_gt = rotation_error_degrees(R_pred, R_gt_inv)
-        trans_err_inv_gt = translation_error_mm(t_pred, t_gt_inv)
+        batch_size_actual = source.shape[0]
 
-        # ----------------------------------------------------------
-        # Store
-        # ----------------------------------------------------------
-
-        chamfer_before_all.append(loss_before.item())
-        chamfer_after_model_all.append(loss_after_model.item())
-        chamfer_after_gt_all.append(loss_gt.item())
-        chamfer_after_inv_gt_all.append(loss_inv_gt.item())
-
-        rotation_errors_gt_all.extend(rot_err_gt.cpu().numpy())
-        translation_errors_gt_all.extend(trans_err_gt.cpu().numpy())
-
-        rotation_errors_inv_gt_all.extend(rot_err_inv_gt.cpu().numpy())
-        translation_errors_inv_gt_all.extend(trans_err_inv_gt.cpu().numpy())
+        total_losses.extend([total_loss.item()] * batch_size_actual)
+        rotation_losses_rad.extend(rot_rad.cpu().numpy())
+        rotation_errors_deg.extend(rot_deg.cpu().numpy())
+        translation_mse_values.extend(trans_mse.cpu().numpy())
+        translation_errors_mm.extend(trans_err.cpu().numpy())
 
 
 # ==========================================================
 # RESULTS
 # ==========================================================
 
-rotation_errors_gt_all = np.array(rotation_errors_gt_all)
-translation_errors_gt_all = np.array(translation_errors_gt_all)
+total_losses = np.array(total_losses)
+rotation_losses_rad = np.array(rotation_losses_rad)
+rotation_errors_deg = np.array(rotation_errors_deg)
+translation_mse_values = np.array(translation_mse_values)
+translation_errors_mm = np.array(translation_errors_mm)
 
-rotation_errors_inv_gt_all = np.array(rotation_errors_inv_gt_all)
-translation_errors_inv_gt_all = np.array(translation_errors_inv_gt_all)
+print("\n========== GEODESIC + TRANSLATION MSE EVALUATION ==========")
 
-print("\n========== CHAMFER RESULTS ==========")
+print(f"Lambda translation: {lambda_translation}")
 
-print(f"Chamfer before registration:        {np.mean(chamfer_before_all):.6f}")
-print(f"Chamfer after model registration:   {np.mean(chamfer_after_model_all):.6f}")
-print(f"Chamfer after stored GT:            {np.mean(chamfer_after_gt_all):.6f}")
-print(f"Chamfer after inverse GT:           {np.mean(chamfer_after_inv_gt_all):.6f}")
+print("\nTotal loss:")
+print(f"Mean:   {total_losses.mean():.6f}")
+print(f"Median: {np.median(total_losses):.6f}")
+print(f"Std:    {total_losses.std():.6f}")
 
-print("\n========== AGAINST STORED GT ==========")
-
-print("\nRotation error [degrees]:")
-print(f"Mean:   {rotation_errors_gt_all.mean():.6f}")
-print(f"Median: {np.median(rotation_errors_gt_all):.6f}")
-print(f"Std:    {rotation_errors_gt_all.std():.6f}")
-
-print("\nTranslation error [mm]:")
-print(f"Mean:   {translation_errors_gt_all.mean():.6f}")
-print(f"Median: {np.median(translation_errors_gt_all):.6f}")
-print(f"Std:    {translation_errors_gt_all.std():.6f}")
-
-print("\n========== AGAINST INVERSE GT ==========")
+print("\nRotation geodesic loss [radians]:")
+print(f"Mean:   {rotation_losses_rad.mean():.6f}")
+print(f"Median: {np.median(rotation_losses_rad):.6f}")
+print(f"Std:    {rotation_losses_rad.std():.6f}")
 
 print("\nRotation error [degrees]:")
-print(f"Mean:   {rotation_errors_inv_gt_all.mean():.6f}")
-print(f"Median: {np.median(rotation_errors_inv_gt_all):.6f}")
-print(f"Std:    {rotation_errors_inv_gt_all.std():.6f}")
+print(f"Mean:   {rotation_errors_deg.mean():.6f}")
+print(f"Median: {np.median(rotation_errors_deg):.6f}")
+print(f"Std:    {rotation_errors_deg.std():.6f}")
+
+print("\nTranslation MSE:")
+print(f"Mean:   {translation_mse_values.mean():.6f}")
+print(f"Median: {np.median(translation_mse_values):.6f}")
+print(f"Std:    {translation_mse_values.std():.6f}")
 
 print("\nTranslation error [mm]:")
-print(f"Mean:   {translation_errors_inv_gt_all.mean():.6f}")
-print(f"Median: {np.median(translation_errors_inv_gt_all):.6f}")
-print(f"Std:    {translation_errors_inv_gt_all.std():.6f}")
+print(f"Mean:   {translation_errors_mm.mean():.6f}")
+print(f"Median: {np.median(translation_errors_mm):.6f}")
+print(f"Std:    {translation_errors_mm.std():.6f}")
