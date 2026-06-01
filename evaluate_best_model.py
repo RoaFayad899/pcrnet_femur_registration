@@ -136,6 +136,14 @@ with torch.no_grad():
         R_pred = result["est_R"]
         t_pred = result["est_t"]
 
+        if len(translation_errors_mm) == 0:
+            print("\n========== DEBUG TRANSLATION ==========")
+            print("t_pred first 3:")
+            print(t_pred[:3])
+
+            print("\nt_gt first 3:")
+            print(t_gt[:3])
+
         loss_dict = criterion(
             R_pred,
             t_pred,
