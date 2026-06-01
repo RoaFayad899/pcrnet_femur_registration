@@ -12,7 +12,6 @@ from pcrnet.losses.chamfer_distance import ChamferDistanceLoss
 # ==========================================================
 
 dataset_dir = "/home/roa.fayad/pcrnet_dataset_partial_fragment_to_full_femur"
-
 checkpoint_path = "/home/roa.fayad/pcrnet_checkpoints_chamfer/best_model.pth"
 
 
@@ -30,6 +29,20 @@ print("Using device:", device)
 # ==========================================================
 # HELPERS
 # ==========================================================
+
+def apply_transform(points, R, t):
+    """
+    Apply rigid transform to point cloud.
+
+    points: [B, N, 3]
+    R:      [B, 3, 3]
+    t:      [B, 3] or [B, 1, 3]
+    """
+    if t.ndim == 2:
+        t = t.unsqueeze(1)
+
+    return torch.bmm(points, R.transpose(1, 2)) + t
+
 
 def rotation_error_degrees(R_pred, R_gt):
     """
@@ -60,13 +73,6 @@ def translation_error_mm(t_pred, t_gt):
 def invert_transform(R, t):
     """
     Invert rigid transform.
-
-    If:
-        x2 = R x1 + t
-
-    then inverse:
-        x1 = R_inv x2 + t_inv
-
     R: [B, 3, 3]
     t: [B, 3]
     """
@@ -74,6 +80,7 @@ def invert_transform(R, t):
     t_inv = -torch.bmm(R_inv, t.unsqueeze(-1)).squeeze(-1)
 
     return R_inv, t_inv
+
 
 # ==========================================================
 # DATASET
@@ -127,7 +134,10 @@ criterion = ChamferDistanceLoss()
 # ==========================================================
 
 chamfer_before_all = []
-chamfer_after_all = []
+chamfer_after_model_all = []
+chamfer_after_gt_all = []
+chamfer_after_inv_gt_all = []
+
 rotation_errors_gt_all = []
 translation_errors_gt_all = []
 
@@ -144,10 +154,31 @@ with torch.no_grad():
         R_gt = batch["R_gt"].to(device)
         t_gt = batch["t_gt"].to(device)
 
+        # ----------------------------------------------------------
         # Chamfer before registration
+        # ----------------------------------------------------------
+
         loss_before = criterion(target, source)
 
+        # ----------------------------------------------------------
+        # Apply stored GT to source
+        # ----------------------------------------------------------
+
+        source_gt = apply_transform(source, R_gt, t_gt)
+        loss_gt = criterion(target, source_gt)
+
+        # ----------------------------------------------------------
+        # Apply inverse GT to source
+        # ----------------------------------------------------------
+
+        R_gt_inv, t_gt_inv = invert_transform(R_gt, t_gt)
+        source_inv_gt = apply_transform(source, R_gt_inv, t_gt_inv)
+        loss_inv_gt = criterion(target, source_inv_gt)
+
+        # ----------------------------------------------------------
         # Model prediction
+        # ----------------------------------------------------------
+
         result = model(
             template=target,
             source=source,
@@ -158,28 +189,26 @@ with torch.no_grad():
         R_pred = result["est_R"]
         t_pred = result["est_t"]
 
-        # Chamfer after registration
-        loss_after = criterion(target, transformed_source)
+        loss_after_model = criterion(target, transformed_source)
 
         # ----------------------------------------------------------
-        # Transformation errors against stored GT
+        # Transformation errors
         # ----------------------------------------------------------
 
         rot_err_gt = rotation_error_degrees(R_pred, R_gt)
         trans_err_gt = translation_error_mm(t_pred, t_gt)
 
-        # ----------------------------------------------------------
-        # Transformation errors against inverse GT
-        # ----------------------------------------------------------
-
-        R_gt_inv, t_gt_inv = invert_transform(R_gt, t_gt)
-
         rot_err_inv_gt = rotation_error_degrees(R_pred, R_gt_inv)
         trans_err_inv_gt = translation_error_mm(t_pred, t_gt_inv)
 
+        # ----------------------------------------------------------
         # Store
+        # ----------------------------------------------------------
+
         chamfer_before_all.append(loss_before.item())
-        chamfer_after_all.append(loss_after.item())
+        chamfer_after_model_all.append(loss_after_model.item())
+        chamfer_after_gt_all.append(loss_gt.item())
+        chamfer_after_inv_gt_all.append(loss_inv_gt.item())
 
         rotation_errors_gt_all.extend(rot_err_gt.cpu().numpy())
         translation_errors_gt_all.extend(trans_err_gt.cpu().numpy())
@@ -198,10 +227,12 @@ translation_errors_gt_all = np.array(translation_errors_gt_all)
 rotation_errors_inv_gt_all = np.array(rotation_errors_inv_gt_all)
 translation_errors_inv_gt_all = np.array(translation_errors_inv_gt_all)
 
-print("\n========== TEST RESULTS ==========")
+print("\n========== CHAMFER RESULTS ==========")
 
-print(f"Chamfer before registration: {np.mean(chamfer_before_all):.6f}")
-print(f"Chamfer after registration:  {np.mean(chamfer_after_all):.6f}")
+print(f"Chamfer before registration:        {np.mean(chamfer_before_all):.6f}")
+print(f"Chamfer after model registration:   {np.mean(chamfer_after_model_all):.6f}")
+print(f"Chamfer after stored GT:            {np.mean(chamfer_after_gt_all):.6f}")
+print(f"Chamfer after inverse GT:           {np.mean(chamfer_after_inv_gt_all):.6f}")
 
 print("\n========== AGAINST STORED GT ==========")
 
