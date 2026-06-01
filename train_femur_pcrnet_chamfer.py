@@ -5,7 +5,7 @@ from torch.utils.data import DataLoader
 
 from pcrnet.data_utils import FemurPCRNetDataset
 from pcrnet.models.pcrnet import iPCRNet
-from pcrnet.losses.chamfer_distance import ChamferDistanceLoss
+from pcrnet.losses.one_sided_chamfer_distance import OneSidedChamferDistanceLoss
 
 
 # ==========================================================
@@ -65,7 +65,7 @@ val_loader = DataLoader(
 
 model = iPCRNet().to(device)
 
-criterion = ChamferDistanceLoss()
+criterion = OneSidedChamferDistanceLoss()
 
 optimizer = torch.optim.Adam(
     model.parameters(),
