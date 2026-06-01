@@ -38,8 +38,21 @@ plt.xlabel("Epoch")
 plt.ylabel("Geodesic + Translation Loss")
 plt.title("PCRNet Training and Validation Loss")
 
-plt.ylim(0, 100)
-plt.yticks(range(0, 110, 10))
+# better y-axis scaling
+max_visible = max(
+    df_plot["train_loss"].quantile(0.95),
+    df_plot["val_loss"].quantile(0.95)
+)
+
+plt.ylim(0, max_visible * 1.1)
+
+plt.yticks(
+    range(
+        0,
+        int(max_visible * 1.1) + 50,
+        50
+    )
+)
 
 plt.grid(True)
 plt.legend()

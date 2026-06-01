@@ -65,7 +65,7 @@ val_loader = DataLoader(
 
 model = iPCRNet().to(device)
 
-criterion = GeodesicTranslationLoss(lambda_translation=1.0)
+criterion = GeodesicTranslationLoss(lambda_translation=0.001)
 
 optimizer = torch.optim.Adam(
     model.parameters(),
