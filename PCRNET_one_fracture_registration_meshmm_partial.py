@@ -42,12 +42,6 @@ rng = np.random.default_rng(RANDOM_SEED)
 # BASIC HELPERS
 # ============================================================
 
-def make_point_cloud(points):
-    pcd = o3d.geometry.PointCloud()
-    pcd.points = o3d.utility.Vector3dVector(points.astype(np.float64))
-    return pcd
-
-
 def rotation_matrix_from_axis_angle(axis, angle_deg):
     axis = axis / np.linalg.norm(axis)
     angle_rad = np.deg2rad(angle_deg)
@@ -65,9 +59,7 @@ def rotation_matrix_from_axis_angle(axis, angle_deg):
 def random_rotation_matrix(max_angle_deg, rng):
     axis = rng.normal(size=3)
     axis = axis / np.linalg.norm(axis)
-
     angle = rng.uniform(-max_angle_deg, max_angle_deg)
-
     R = rotation_matrix_from_axis_angle(axis, angle)
     return R, axis, angle
 
@@ -87,13 +79,6 @@ def apply_rigid(points, center, R, t):
 
 
 def build_transform_matrix(center, R, t):
-    """
-    apply_rigid uses:
-        p' = (p - center) @ R.T + center + t
-
-    Equivalent homogeneous transform:
-        p' = R p + [center + t - R center]
-    """
     T = np.eye(4)
     T[:3, :3] = R
     T[:3, 3] = center + t - R @ center
@@ -131,6 +116,15 @@ def add_multiplicative_noise(points, noise_scale, rng):
     return points * noise
 
 
+def make_open3d_mesh(vertices, faces, color):
+    mesh = o3d.geometry.TriangleMesh()
+    mesh.vertices = o3d.utility.Vector3dVector(vertices.astype(np.float64))
+    mesh.triangles = o3d.utility.Vector3iVector(faces.astype(np.int32))
+    mesh.compute_vertex_normals()
+    mesh.paint_uniform_color(color)
+    return mesh
+
+
 # ============================================================
 # LOAD CT SEGMENTATION
 # ============================================================
@@ -162,8 +156,10 @@ full_vertices_mm, full_faces, _, _ = measure.marching_cubes(
 )
 
 full_femur_points = full_vertices_mm.copy()
+common_center_full_femur = full_femur_points.mean(axis=0)
 
 print("Full intact femur points:", len(full_femur_points))
+print("Common global center:", common_center_full_femur)
 
 
 # ============================================================
@@ -285,7 +281,11 @@ print("Fragment 2 partial points:", len(frag2_clean))
 
 
 # ============================================================
-# DATASET GENERATION - CORRECTED LOGIC
+# DATASET GENERATION
+# Option B:
+# Same global transform for source and target around SAME center
+# Then source receives noise + extra perturbation
+# GT = inverse of extra perturbation
 # ============================================================
 
 metadata = []
@@ -300,7 +300,7 @@ for fragment_id, fragment_clean in [
 
         # ====================================================
         # 1. GLOBAL TRANSFORM
-        # Same transform applied to target and source base
+        # Same R/t and same center for target and source
         # ====================================================
 
         R_global, axis_global, angle_global = random_rotation_matrix(
@@ -313,45 +313,45 @@ for fragment_id, fragment_clean in [
             rng
         )
 
+        common_center = common_center_full_femur.copy()
+
         # ====================================================
         # 2. TARGET
-        # Clean whole intact femur + global transform only
-        # No noise
+        # Whole intact femur + global transform
         # ====================================================
 
         target_clean = full_femur_points.copy()
-        center_target = target_clean.mean(axis=0)
 
         target_transformed = apply_rigid(
             target_clean,
-            center_target,
+            common_center,
             R_global,
             t_global
         )
 
         T_global_target = build_transform_matrix(
-            center_target,
+            common_center,
             R_global,
             t_global
         )
 
         # ====================================================
         # 3. SOURCE BASE
-        # Same anatomical/global pose as target
+        # Partial fractured fragment + SAME global transform
+        # around SAME center
         # ====================================================
 
         source_base_clean = fragment_clean.copy()
-        center_source_base = source_base_clean.mean(axis=0)
 
         source_base_transformed = apply_rigid(
             source_base_clean,
-            center_source_base,
+            common_center,
             R_global,
             t_global
         )
 
         T_global_source = build_transform_matrix(
-            center_source_base,
+            common_center,
             R_global,
             t_global
         )
@@ -367,8 +367,8 @@ for fragment_id, fragment_clean in [
         )
 
         # ====================================================
-        # 5. EXTRA LOCAL SOURCE PERTURBATION
-        # This creates the registration problem
+        # 5. EXTRA SOURCE PERTURBATION
+        # This is the actual registration problem
         # ====================================================
 
         R_extra, axis_extra, angle_extra = random_rotation_matrix(
@@ -398,13 +398,19 @@ for fragment_id, fragment_clean in [
 
         # ====================================================
         # 6. GROUND TRUTH
-        # This aligns perturbed source back to target pose
+        # Since source and target share the same global transform,
+        # the only misalignment is T_extra.
+        # GT maps source_transformed back to source_noisy/target pose.
         # ====================================================
 
         T_gt = invert_transform(T_extra)
 
         R_gt = T_gt[:3, :3]
         t_gt = T_gt[:3, 3]
+
+        # Optional explicit total transforms
+        T_source_total = T_extra @ T_global_source
+        T_target_total = T_global_target
 
         # ====================================================
         # 7. FIXED NUMBER OF POINTS
@@ -442,6 +448,9 @@ for fragment_id, fragment_clean in [
             T_global_target=T_global_target.astype(np.float32),
             T_global_source=T_global_source.astype(np.float32),
             T_extra=T_extra.astype(np.float32),
+
+            T_source_total=T_source_total.astype(np.float32),
+            T_target_total=T_target_total.astype(np.float32),
 
             R_global=R_global.astype(np.float32),
             t_global=t_global.astype(np.float32),
@@ -490,29 +499,17 @@ print("Dataset saved to:", output_dir)
 print("Total samples:", sample_id)
 print("Fragment 1 samples:", N_SAMPLES_PER_FRAGMENT)
 print("Fragment 2 samples:", N_SAMPLES_PER_FRAGMENT)
-print("Target: clean whole femur with global transform")
-print("Source: same global transform + noise + extra source perturbation")
+print("Target: clean whole femur with global transform around full femur center")
+print("Source: same global transform around full femur center + noise + extra source perturbation")
 print("Ground truth: inverse of extra source perturbation")
 
 
-
-########################################################################################################################
-########################################################################################################################
-########################################################################################################################
 # ============================================================
 # CLEAR MESH VISUALIZATION OF ONE EXAMPLE
-# corrected logic: same global transform + extra source transform
+# Same global center for target and source
 # ============================================================
 
 print("\n========== CLEAR MESH VISUALIZATION OF ONE EXAMPLE ==========")
-
-def make_open3d_mesh(vertices, faces, color):
-    mesh = o3d.geometry.TriangleMesh()
-    mesh.vertices = o3d.utility.Vector3dVector(vertices.astype(np.float64))
-    mesh.triangles = o3d.utility.Vector3iVector(faces.astype(np.int32))
-    mesh.compute_vertex_normals()
-    mesh.paint_uniform_color(color)
-    return mesh
 
 
 def split_partial_mesh_into_fracture_fragments(vertices, faces, gap_size):
@@ -551,11 +548,7 @@ def split_partial_mesh_into_fracture_fragments(vertices, faces, gap_size):
     return v1_gap, f1, v2_gap, f2
 
 
-# ------------------------------------------------------------
-# Choose fragment for visualization
-# ------------------------------------------------------------
-
-VIS_FRAGMENT_ID = 1   # change to 2 if you want fragment 2
+VIS_FRAGMENT_ID = 1
 
 v1_gap, f1, v2_gap, f2 = split_partial_mesh_into_fracture_fragments(
     partial_vertices,
@@ -571,11 +564,6 @@ else:
     source_faces = f2
 
 
-# ------------------------------------------------------------
-# 1. Generate one global transform
-# same for target and source base
-# ------------------------------------------------------------
-
 R_global, axis_global, angle_global = random_rotation_matrix(
     MAX_TARGET_ROT_DEG,
     rng
@@ -586,46 +574,21 @@ t_global = random_translation(
     rng
 )
 
-
-# ------------------------------------------------------------
-# 2. Target mesh = whole intact femur + global transform
-# ------------------------------------------------------------
-
-center_target = full_vertices_mm.mean(axis=0)
+common_center_vis = full_vertices_mm.mean(axis=0)
 
 target_vertices_global = apply_rigid(
     full_vertices_mm,
-    center_target,
+    common_center_vis,
     R_global,
     t_global
 )
-
-target_mesh = make_open3d_mesh(
-    target_vertices_global,
-    full_faces,
-    [0.2, 0.6, 1.0]   # blue
-)
-
-
-# ------------------------------------------------------------
-# 3. Source mesh base = same global transform
-# no noise for mesh visualization to keep it clean
-# ------------------------------------------------------------
-
-center_source_base = source_vertices_clean.mean(axis=0)
 
 source_vertices_global = apply_rigid(
     source_vertices_clean,
-    center_source_base,
+    common_center_vis,
     R_global,
     t_global
 )
-
-
-# ------------------------------------------------------------
-# 4. Extra source perturbation
-# this is the misalignment PCRNet should learn to correct
-# ------------------------------------------------------------
 
 R_extra, axis_extra, angle_extra = random_rotation_matrix(
     MAX_SOURCE_ROT_DEG,
@@ -646,24 +609,20 @@ source_vertices_misaligned = apply_rigid(
     t_extra
 )
 
+target_mesh = make_open3d_mesh(
+    target_vertices_global,
+    full_faces,
+    [0.2, 0.6, 1.0]
+)
+
 source_mesh = make_open3d_mesh(
     source_vertices_misaligned,
     source_faces,
-    [1.0, 0.2, 0.1]   # red
+    [1.0, 0.2, 0.1]
 )
-
-
-# ------------------------------------------------------------
-# Optional: wireframe target for clarity
-# ------------------------------------------------------------
 
 target_wire = o3d.geometry.LineSet.create_from_triangle_mesh(target_mesh)
 target_wire.paint_uniform_color([0.0, 0.0, 0.8])
-
-
-# ------------------------------------------------------------
-# Print info
-# ------------------------------------------------------------
 
 print("\nTARGET")
 print("Clean whole femur")
@@ -672,16 +631,11 @@ print("Global translation mm:", t_global)
 
 print("\nSOURCE")
 print("Fragment:", VIS_FRAGMENT_ID)
-print("Same global transform as target")
+print("Same global transform around full femur center")
 print("Extra source rotation angle deg:", angle_extra)
 print("Extra source translation mm:", t_extra)
 
 print("\nGround truth for registration = inverse of extra source transform")
-
-
-# ------------------------------------------------------------
-# Visualize
-# ------------------------------------------------------------
 
 o3d.visualization.draw_geometries(
     [target_mesh, target_wire, source_mesh],
