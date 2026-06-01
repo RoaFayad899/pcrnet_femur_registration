@@ -182,7 +182,7 @@ for epoch in range(epochs):
 
             loss = loss_dict["total_loss"]
 
-            val_loss_total += val_loss.item()
+            val_loss_total += loss.item()
 
     avg_val_loss = val_loss_total / len(val_loader)
 
