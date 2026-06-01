@@ -1,53 +1,48 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 
-# ==========================================================
-# PATHS
-# ==========================================================
 
-log_file = "/home/roa.fayad/pcrnet_checkpoints_chamfer/training_log.csv"
+log_file = "/home/roa.fayad/pcrnet_checkpoints_geodesic_translation/training_log.csv"
 
 output_figure = (
-    "/home/roa.fayad/pcrnet_checkpoints_chamfer/loss_curves.png"
+    "/home/roa.fayad/pcrnet_checkpoints_geodesic_translation/loss_curves.png"
 )
 
-# ==========================================================
-# LOAD CSV
-# ==========================================================
 
 df = pd.read_csv(log_file)
 
 print(df.head())
 
-# ==========================================================
-# PLOT
-# ==========================================================
+
+# Remove first epoch from plot because it is an outlier
+df_plot = df[df["epoch"] > 1]
+
 
 plt.figure(figsize=(8, 5))
 
 plt.plot(
-    df["epoch"],
-    df["train_loss"],
+    df_plot["epoch"],
+    df_plot["train_loss"],
     label="Training Loss",
     linewidth=2
 )
 
 plt.plot(
-    df["epoch"],
-    df["val_loss"],
+    df_plot["epoch"],
+    df_plot["val_loss"],
     label="Validation Loss",
     linewidth=2
 )
 
 plt.xlabel("Epoch")
-plt.ylabel("Chamfer Loss")
+plt.ylabel("Geodesic + Translation Loss")
 plt.title("PCRNet Training and Validation Loss")
+
+plt.ylim(0, 100)
+plt.yticks(range(0, 110, 10))
+
 plt.grid(True)
 plt.legend()
-
-# ==========================================================
-# SAVE
-# ==========================================================
 
 plt.savefig(
     output_figure,
