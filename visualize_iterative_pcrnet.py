@@ -1,3 +1,4 @@
+import os
 import torch
 import numpy as np
 import open3d as o3d
@@ -6,17 +7,11 @@ from pcrnet.data_utils import FemurPCRNetDataset
 from pcrnet.models.pcrnet import iPCRNet
 
 
-# ==========================================================
-# PATHS
-# ==========================================================
-
 dataset_dir = "/home/roa.fayad/pcrnet_dataset_partial_fragment_to_full_femur"
 checkpoint_path = "/home/roa.fayad/pcrnet_checkpoints_geodesic_translation/best_model.pth"
 
-
-# ==========================================================
-# SETTINGS
-# ==========================================================
+output_dir = "/home/roa.fayad/pcrnet_iterative_visualization"
+os.makedirs(output_dir, exist_ok=True)
 
 sample_index = 0
 max_iterations = 8
@@ -24,10 +19,6 @@ max_iterations = 8
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Using device:", device)
 
-
-# ==========================================================
-# LOAD TEST SAMPLE
-# ==========================================================
 
 test_dataset = FemurPCRNetDataset(
     dataset_dir=dataset_dir,
@@ -47,10 +38,6 @@ print("source:", source.shape)
 print("target:", target.shape)
 
 
-# ==========================================================
-# LOAD MODEL
-# ==========================================================
-
 model = iPCRNet().to(device)
 
 checkpoint = torch.load(
@@ -67,10 +54,6 @@ print("train_loss:", checkpoint["train_loss"])
 print("val_loss:", checkpoint["val_loss"])
 
 
-# ==========================================================
-# OPEN3D HELPER
-# ==========================================================
-
 def make_point_cloud(points, color):
     pcd = o3d.geometry.PointCloud()
     pcd.points = o3d.utility.Vector3dVector(points.astype(np.float64))
@@ -78,23 +61,43 @@ def make_point_cloud(points, color):
     return pcd
 
 
+# Save target once
 target_pcd = make_point_cloud(target_np, [0.2, 0.6, 1.0])
+target_path = os.path.join(output_dir, "target_blue.ply")
+o3d.io.write_point_cloud(target_path, target_pcd)
+
+# Save initial source
 source_initial_pcd = make_point_cloud(source_np, [1.0, 0.1, 0.1])
+source_initial_path = os.path.join(output_dir, "iteration_00_source_red.ply")
+o3d.io.write_point_cloud(source_initial_path, source_initial_pcd)
+T_gt = sample["T_gt"].unsqueeze(0).to(device)
 
-
-# ==========================================================
-# WINDOW 0: INITIAL MISALIGNMENT
-# ==========================================================
-
-o3d.visualization.draw_geometries(
-    [target_pcd, source_initial_pcd],
-    window_name="Iteration 0: red source before registration, blue target",
+source_h = torch.cat(
+    [
+        source,
+        torch.ones(source.shape[0], source.shape[1], 1).to(device)
+    ],
+    dim=2
 )
 
+source_gt = torch.bmm(
+    source_h,
+    T_gt.transpose(1, 2)
+)[:, :, :3]
 
-# ==========================================================
-# ITERATIVE VISUALIZATION
-# ==========================================================
+source_gt_np = source_gt.squeeze(0).cpu().numpy()
+
+source_gt_pcd = make_point_cloud(source_gt_np, [1.0, 1.0, 0.0])
+
+source_gt_path = os.path.join(output_dir, "source_after_GT_yellow.ply")
+o3d.io.write_point_cloud(source_gt_path, source_gt_pcd)
+
+print(source_gt_path)
+
+print("\nSaved:")
+print(target_path)
+print(source_initial_path)
+
 
 with torch.no_grad():
 
@@ -114,11 +117,18 @@ with torch.no_grad():
             [0.1, 0.9, 0.2]
         )
 
+        output_path = os.path.join(
+            output_dir,
+            f"iteration_{iteration:02d}_source_transformed_green.ply"
+        )
+
+        o3d.io.write_point_cloud(output_path, transformed_pcd)
+
         print(f"\nIteration {iteration}")
         print("Estimated translation:")
         print(result["est_t"].squeeze().cpu().numpy())
+        print("Saved:", output_path)
 
-        o3d.visualization.draw_geometries(
-            [target_pcd, transformed_pcd],
-            window_name=f"Iteration {iteration}: green transformed source, blue target",
-        )
+
+print("\nDONE.")
+print("Files saved in:", output_dir)
