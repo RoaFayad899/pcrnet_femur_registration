@@ -19,9 +19,9 @@ checkpoint_path = "/home/roa.fayad/pcrnet_checkpoints_geodesic_translation/best_
 # SETTINGS
 # ==========================================================
 
-batch_size = 16
-max_iteration = 8
-lambda_translation = 1.0
+batch_size = 32      #####16
+max_iteration = 30   #######8
+lambda_translation = 10 #######1.0
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Using device:", device)

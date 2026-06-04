@@ -14,7 +14,7 @@ output_dir = "/home/roa.fayad/pcrnet_iterative_visualization"
 os.makedirs(output_dir, exist_ok=True)
 
 sample_index = 0
-max_iterations = 8
+max_iterations = 30 ##########8
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Using device:", device)
