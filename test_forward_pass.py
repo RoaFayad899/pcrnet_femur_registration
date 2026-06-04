@@ -3,7 +3,7 @@ from torch.utils.data import DataLoader
 
 from pcrnet.data_utils import FemurPCRNetDataset
 from pcrnet.models.pcrnet import iPCRNet
-from pcrnet.losses.chamfer_distance import ChamferDistanceLoss
+from pcrnet.losses.geodesic_translation_loss import GeodesicTranslationLoss
 
 
 # ==========================================================
@@ -12,8 +12,12 @@ from pcrnet.losses.chamfer_distance import ChamferDistanceLoss
 
 dataset = FemurPCRNetDataset(
     dataset_dir= "/home/roa.fayad/pcrnet_dataset_partial_fragment_to_full_femur",    ### r"C:\data_unibas\pcrnet_dataset_partial_fragment_to_full_femur"
-    split="train"
-)
+    split="train")
+
+# dataset = FemurPCRNetDataset(
+#     dataset_dir= r"C:\data_unibas\pcrnet_dataset_partial_fragment_to_full_femur",    ### r"C:\data_unibas\pcrnet_dataset_partial_fragment_to_full_femur"
+#     split="train")
+
 
 loader = DataLoader(
     dataset,
@@ -56,8 +60,21 @@ print("estimated translation:", result['est_t'].shape)
 # LOSS
 # ==========================================================
 
-criterion = ChamferDistanceLoss()
-loss = criterion(target, transformed_source)
+criterion = GeodesicTranslationLoss(lambda_translation=0.01)
+
+loss_dict = criterion(
+    result["est_R"],
+    result["est_t"],
+    batch["R_gt"],
+    batch["t_gt"]
+)
 
 print("\n========== LOSS ==========")
-print("Chamfer loss:", loss.item())
+print("total loss:", loss_dict["total_loss"].item())
+print("rotation loss:", loss_dict["rotation_loss"].item())
+print("translation loss:", loss_dict["translation_loss"].item())
+
+
+print("\n========== GT SCALE CHECK ==========")
+print("t_gt first sample:", batch["t_gt"][0])
+print("est_t first sample:", result["est_t"][0])

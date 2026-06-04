@@ -42,28 +42,21 @@ plt.plot(
 )
 
 plt.xlabel("Epoch")
-plt.ylabel("Loss")
+plt.ylabel("Geodesic + Translation Loss")
 
 plt.title("PCRNet Training and Validation Loss")
 
 
 # ==========================================================
-# Y AXIS SCALE
+# BETTER Y AXIS SCALE
 # ==========================================================
 
-max_loss = max(
-    df["train_loss"].max(),
-    df["val_loss"].max()
+max_visible = max(
+    df["train_loss"].quantile(0.95),
+    df["val_loss"].quantile(0.95)
 )
 
-plt.yticks(
-    range(
-        0,
-        int(max_loss) + 20,
-        10   # change to 20 if you want larger spacing
-    )
-)
-
+plt.ylim(0, max_visible * 1.1)
 
 # ==========================================================
 # STYLE

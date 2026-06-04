@@ -46,14 +46,6 @@ max_visible = max(
 
 plt.ylim(0, max_visible * 1.1)
 
-plt.yticks(
-    range(
-        0,
-        int(max_visible * 1.1) + 50,
-        50
-    )
-)
-
 plt.grid(True)
 plt.legend()
 

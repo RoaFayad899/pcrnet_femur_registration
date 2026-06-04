@@ -4,14 +4,16 @@ from torch.utils.data import DataLoader
 
 from pcrnet.data_utils import FemurPCRNetDataset
 from pcrnet.models.pcrnet import iPCRNet
-from pcrnet.losses.chamfer_distance import ChamferDistanceLoss
+from pcrnet.losses.geodesic_translation_loss import GeodesicTranslationLoss
 
 
 # ==========================================================
 # SETTINGS FOR LOCAL TEST ONLY
 # ==========================================================
 
-dataset_dir = "/home/roa.fayad/pcrnet_dataset_partial_fragment_to_full_femur"    ### r"C:\data_unibas\pcrnet_dataset_partial_fragment_to_full_femur"
+dataset_dir = "/home/roa.fayad/pcrnet_dataset_partial_fragment_to_full_femur"### r"C:\data_unibas\pcrnet_dataset_partial_fragment_to_full_femur"
+
+#dataset_dir = r"C:\data_unibas\pcrnet_dataset_partial_fragment_to_full_femur"
 
 epochs = 2
 batch_size = 2
@@ -19,6 +21,7 @@ learning_rate = 1e-3
 max_iteration = 1
 
 checkpoint_dir = "/home/roa.fayad/pcrnet_checkpoints_test"  ####r"C:\data_unibas\pcrnet_checkpoints_test"
+#checkpoint_dir = r"C:\data_unibas\pcrnet_checkpoints_test"
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Using device:", device)
@@ -57,7 +60,7 @@ val_loader = DataLoader(
 
 model = iPCRNet().to(device)
 
-criterion = ChamferDistanceLoss()
+criterion = GeodesicTranslationLoss(lambda_translation= 1.0)
 
 optimizer = torch.optim.Adam(
     model.parameters(),
@@ -93,12 +96,14 @@ for epoch in range(epochs):
             max_iteration=max_iteration
         )
 
-        transformed_source = result["transformed_source"]
-
-        loss = criterion(
-            target,
-            transformed_source
+        loss_dict = criterion(
+            result["est_R"],
+            result["est_t"],
+            batch["R_gt"].to(device),
+            batch["t_gt"].to(device)
         )
+
+        loss = loss_dict["total_loss"]
 
         loss.backward()
         optimizer.step()
@@ -133,12 +138,14 @@ for epoch in range(epochs):
                 max_iteration=max_iteration
             )
 
-            transformed_source = result["transformed_source"]
-
-            val_loss = criterion(
-                target,
-                transformed_source
+            loss_dict = criterion(
+                result["est_R"],
+                result["est_t"],
+                batch["R_gt"].to(device),
+                batch["t_gt"].to(device)
             )
+
+            val_loss = loss_dict["total_loss"]
 
             val_loss_total += val_loss.item()
 

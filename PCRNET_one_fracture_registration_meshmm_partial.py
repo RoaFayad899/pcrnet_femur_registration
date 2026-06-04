@@ -25,15 +25,17 @@ N_TARGET_POINTS = 1024
 NOISE_SCALE = 0.01
 RANDOM_SEED = 42
 
-FRACTURE_GAP_SIZE = 2.0
+
 FRACTURE_ANGLE_DEG = 15.0
 PARTIAL_KEEP_PERCENTILE = 55
 
 MAX_SOURCE_ROT_DEG = 6.0
 MAX_TARGET_ROT_DEG = 8.0
 
-SOURCE_TRANSLATION_RANGE = (-6.0, 6.0)
-TARGET_TRANSLATION_RANGE = (-10.0, 10.0)
+FRACTURE_GAP_SIZE = 0.01
+
+SOURCE_TRANSLATION_RANGE = (-0.05, 0.05)
+TARGET_TRANSLATION_RANGE = (-0.08, 0.08)
 
 rng = np.random.default_rng(RANDOM_SEED)
 
@@ -77,6 +79,10 @@ def apply_rigid(points, center, R, t):
     points_rotated = points_centered @ R.T
     return points_rotated + center + t
 
+def apply_transform(points, T):
+    R = T[:3, :3]
+    t = T[:3, 3]
+    return points @ R.T + t
 
 def build_transform_matrix(center, R, t):
     T = np.eye(4)
@@ -125,6 +131,14 @@ def make_open3d_mesh(vertices, faces, color):
     return mesh
 
 
+##Normalization
+def normalize_points(points, center, scale):
+    return (points - center) / scale
+
+
+def denormalize_points(points_normalized, center, scale):
+    return points_normalized * scale + center
+
 # ============================================================
 # LOAD CT SEGMENTATION
 # ============================================================
@@ -155,8 +169,28 @@ full_vertices_mm, full_faces, _, _ = measure.marching_cubes(
     spacing=voxel_size_mm
 )
 
-full_femur_points = full_vertices_mm.copy()
-common_center_full_femur = full_femur_points.mean(axis=0)
+full_points_mm = full_vertices_mm.copy()
+
+normalization_center = full_points_mm.mean(axis=0)
+
+normalization_scale = np.max(
+    np.linalg.norm(
+        full_points_mm - normalization_center,
+        axis=1
+    )
+)
+
+full_vertices = normalize_points(
+    full_vertices_mm,
+    normalization_center,
+    normalization_scale
+)
+
+full_points = full_vertices.copy()
+common_center = full_points.mean(axis=0)
+
+full_femur_points = full_vertices.copy()
+common_center_full_femur = common_center.copy()
 
 print("Full intact femur points:", len(full_femur_points))
 print("Common global center:", common_center_full_femur)
@@ -208,7 +242,7 @@ def extract_longitudinal_half_mesh(vertices, faces, keep_percentile=55):
 
 
 partial_vertices, partial_faces, _, _ = extract_longitudinal_half_mesh(
-    full_vertices_mm,
+    full_vertices,
     full_faces,
     keep_percentile=PARTIAL_KEEP_PERCENTILE
 )
@@ -282,10 +316,7 @@ print("Fragment 2 partial points:", len(frag2_clean))
 
 # ============================================================
 # DATASET GENERATION
-# Option B:
-# Same global transform for source and target around SAME center
-# Then source receives noise + extra perturbation
-# GT = inverse of extra perturbation
+# Normalized + matrix-based version
 # ============================================================
 
 metadata = []
@@ -299,8 +330,7 @@ for fragment_id, fragment_clean in [
     for local_id in range(N_SAMPLES_PER_FRAGMENT):
 
         # ====================================================
-        # 1. GLOBAL TRANSFORM
-        # Same R/t and same center for target and source
+        # 1. GLOBAL TRANSFORM MATRIX
         # ====================================================
 
         R_global, axis_global, angle_global = random_rotation_matrix(
@@ -315,46 +345,39 @@ for fragment_id, fragment_clean in [
 
         common_center = common_center_full_femur.copy()
 
+        T_global = build_transform_matrix(
+            common_center,
+            R_global,
+            t_global
+        )
+
         # ====================================================
         # 2. TARGET
-        # Whole intact femur + global transform
+        # Whole intact femur + global transform matrix
         # ====================================================
 
         target_clean = full_femur_points.copy()
 
-        target_transformed = apply_rigid(
+        target_transformed = apply_transform(
             target_clean,
-            common_center,
-            R_global,
-            t_global
+            T_global
         )
 
-        T_global_target = build_transform_matrix(
-            common_center,
-            R_global,
-            t_global
-        )
+        T_global_target = T_global.copy()
 
         # ====================================================
         # 3. SOURCE BASE
-        # Partial fractured fragment + SAME global transform
-        # around SAME center
+        # Partial fractured fragment + same global matrix
         # ====================================================
 
         source_base_clean = fragment_clean.copy()
 
-        source_base_transformed = apply_rigid(
+        source_base_transformed = apply_transform(
             source_base_clean,
-            common_center,
-            R_global,
-            t_global
+            T_global
         )
 
-        T_global_source = build_transform_matrix(
-            common_center,
-            R_global,
-            t_global
-        )
+        T_global_source = T_global.copy()
 
         # ====================================================
         # 4. ADD NOISE TO SOURCE ONLY
@@ -367,8 +390,7 @@ for fragment_id, fragment_clean in [
         )
 
         # ====================================================
-        # 5. EXTRA SOURCE PERTURBATION
-        # This is the actual registration problem
+        # 5. EXTRA SOURCE PERTURBATION MATRIX
         # ====================================================
 
         R_extra, axis_extra, angle_extra = random_rotation_matrix(
@@ -383,24 +405,20 @@ for fragment_id, fragment_clean in [
 
         center_extra = source_noisy.mean(axis=0)
 
-        source_transformed = apply_rigid(
-            source_noisy,
-            center_extra,
-            R_extra,
-            t_extra
-        )
-
         T_extra = build_transform_matrix(
             center_extra,
             R_extra,
             t_extra
         )
 
+        source_transformed = apply_transform(
+            source_noisy,
+            T_extra
+        )
+
         # ====================================================
         # 6. GROUND TRUTH
-        # Since source and target share the same global transform,
-        # the only misalignment is T_extra.
-        # GT maps source_transformed back to source_noisy/target pose.
+        # GT maps perturbed source back to source_noisy pose
         # ====================================================
 
         T_gt = invert_transform(T_extra)
@@ -408,9 +426,8 @@ for fragment_id, fragment_clean in [
         R_gt = T_gt[:3, :3]
         t_gt = T_gt[:3, 3]
 
-        # Optional explicit total transforms
         T_source_total = T_extra @ T_global_source
-        T_target_total = T_global_target
+        T_target_total = T_global_target.copy()
 
         # ====================================================
         # 7. FIXED NUMBER OF POINTS
@@ -463,7 +480,10 @@ for fragment_id, fragment_clean in [
             noise_scale=np.array(NOISE_SCALE, dtype=np.float32),
 
             global_rotation_angle_deg=np.array(angle_global, dtype=np.float32),
-            extra_source_rotation_angle_deg=np.array(angle_extra, dtype=np.float32)
+            extra_source_rotation_angle_deg=np.array(angle_extra, dtype=np.float32),
+
+            normalization_center=normalization_center.astype(np.float32),
+            normalization_scale=np.array(normalization_scale, dtype=np.float32)
         )
 
         metadata.append({
@@ -479,12 +499,12 @@ for fragment_id, fragment_clean in [
             "extra_source_translation": t_extra.tolist(),
 
             "source_points": N_SOURCE_POINTS,
-            "target_points": N_TARGET_POINTS
+            "target_points": N_TARGET_POINTS,
+
+            "normalization_scale": float(normalization_scale)
         })
 
         sample_id += 1
-
-
 # ============================================================
 # SAVE METADATA
 # ============================================================
@@ -504,9 +524,10 @@ print("Source: same global transform around full femur center + noise + extra so
 print("Ground truth: inverse of extra source perturbation")
 
 
+########################################################################################################################
 # ============================================================
 # CLEAR MESH VISUALIZATION OF ONE EXAMPLE
-# Same global center for target and source
+# Normalized + matrix-based version
 # ============================================================
 
 print("\n========== CLEAR MESH VISUALIZATION OF ONE EXAMPLE ==========")
@@ -564,6 +585,10 @@ else:
     source_faces = f2
 
 
+# ============================================================
+# GLOBAL TRANSFORM MATRIX
+# ============================================================
+
 R_global, axis_global, angle_global = random_rotation_matrix(
     MAX_TARGET_ROT_DEG,
     rng
@@ -574,21 +599,28 @@ t_global = random_translation(
     rng
 )
 
-common_center_vis = full_vertices_mm.mean(axis=0)
+common_center_vis = common_center_full_femur.copy()
 
-target_vertices_global = apply_rigid(
-    full_vertices_mm,
+T_global_vis = build_transform_matrix(
     common_center_vis,
     R_global,
     t_global
 )
 
-source_vertices_global = apply_rigid(
+target_vertices_global = apply_transform(
+    full_femur_points,
+    T_global_vis
+)
+
+source_vertices_global = apply_transform(
     source_vertices_clean,
-    common_center_vis,
-    R_global,
-    t_global
+    T_global_vis
 )
+
+
+# ============================================================
+# EXTRA SOURCE PERTURBATION MATRIX
+# ============================================================
 
 R_extra, axis_extra, angle_extra = random_rotation_matrix(
     MAX_SOURCE_ROT_DEG,
@@ -602,12 +634,42 @@ t_extra = random_translation(
 
 center_extra = source_vertices_global.mean(axis=0)
 
-source_vertices_misaligned = apply_rigid(
-    source_vertices_global,
+T_extra_vis = build_transform_matrix(
     center_extra,
     R_extra,
     t_extra
 )
+
+source_vertices_misaligned = apply_transform(
+    source_vertices_global,
+    T_extra_vis
+)
+
+T_gt_vis = invert_transform(T_extra_vis)
+
+source_vertices_corrected = apply_transform(
+    source_vertices_misaligned,
+    T_gt_vis
+)
+
+
+# ============================================================
+# NUMERICAL CHECK
+# ============================================================
+
+alignment_error = np.linalg.norm(
+    source_vertices_corrected - source_vertices_global,
+    axis=1
+)
+
+print("\n========== VISUALIZATION GT CHECK ==========")
+print("Mean point error corrected vs source_global:", alignment_error.mean())
+print("Max point error corrected vs source_global:", alignment_error.max())
+
+
+# ============================================================
+# MESHES
+# ============================================================
 
 target_mesh = make_open3d_mesh(
     target_vertices_global,
@@ -615,30 +677,41 @@ target_mesh = make_open3d_mesh(
     [0.2, 0.6, 1.0]
 )
 
-source_mesh = make_open3d_mesh(
+source_misaligned_mesh = make_open3d_mesh(
     source_vertices_misaligned,
     source_faces,
     [1.0, 0.2, 0.1]
 )
 
+source_corrected_mesh = make_open3d_mesh(
+    source_vertices_corrected,
+    source_faces,
+    [0.1, 0.9, 0.2]
+)
+
 target_wire = o3d.geometry.LineSet.create_from_triangle_mesh(target_mesh)
 target_wire.paint_uniform_color([0.0, 0.0, 0.8])
 
+
 print("\nTARGET")
-print("Clean whole femur")
+print("Clean whole femur, normalized coordinates")
 print("Global rotation angle deg:", angle_global)
-print("Global translation mm:", t_global)
+print("Global translation normalized units:", t_global)
 
 print("\nSOURCE")
 print("Fragment:", VIS_FRAGMENT_ID)
-print("Same global transform around full femur center")
+print("Same global transform around normalized full femur center")
 print("Extra source rotation angle deg:", angle_extra)
-print("Extra source translation mm:", t_extra)
+print("Extra source translation normalized units:", t_extra)
 
-print("\nGround truth for registration = inverse of extra source transform")
+print("\nExpected:")
+print("Red = misaligned source")
+print("Green = corrected source using GT inverse")
+print("Blue = target")
+
 
 o3d.visualization.draw_geometries(
-    [target_mesh, target_wire, source_mesh],
-    window_name="Corrected dataset mesh example: source vs target",
+    [target_mesh, target_wire, source_misaligned_mesh, source_corrected_mesh],
+    window_name="Dataset mesh example: red misaligned, green corrected, blue target",
     mesh_show_back_face=True
 )

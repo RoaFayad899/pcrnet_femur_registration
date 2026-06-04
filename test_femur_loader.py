@@ -4,7 +4,7 @@ from pcrnet.data_utils import FemurPCRNetDataset
 
 
 dataset_dir = "/home/roa.fayad/pcrnet_dataset_partial_fragment_to_full_femur"  #r"C:\data_unibas\pcrnet_dataset_partial_fragment_to_full_femur"
-
+#dataset_dir = r"C:\data_unibas\pcrnet_dataset_partial_fragment_to_full_femur"
 
 train_dataset = FemurPCRNetDataset(
     dataset_dir,
@@ -33,3 +33,18 @@ print("T_gt shape:", batch["T_gt"].shape)
 
 print("\nsource dtype:", batch["source"].dtype)
 print("target dtype:", batch["target"].dtype)
+
+
+print("\n========== VALUE CHECKS ==========")
+
+print("source min:", batch["source"].min().item())
+print("source max:", batch["source"].max().item())
+
+print("target min:", batch["target"].min().item())
+print("target max:", batch["target"].max().item())
+
+print("\nFirst t_gt:")
+print(batch["t_gt"][0])
+
+print("\nFirst T_gt:")
+print(batch["T_gt"][0])

@@ -21,7 +21,7 @@ checkpoint_path = "/home/roa.fayad/pcrnet_checkpoints_geodesic_translation/best_
 
 batch_size = 16
 max_iteration = 8
-lambda_translation = 0.01
+lambda_translation = 1.0
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Using device:", device)
@@ -44,11 +44,19 @@ def rotation_error_degrees(R_pred, R_gt):
     return theta_rad, theta_deg
 
 
-def translation_error_mm(t_pred, t_gt):
+def translation_error_mm(t_pred, t_gt, normalization_scale):
+
     if t_pred.ndim == 3:
         t_pred = t_pred.squeeze(1)
 
-    return torch.linalg.norm(t_pred - t_gt, dim=1)
+    error_normalized = torch.linalg.norm(
+        t_pred - t_gt,
+        dim=1
+    )
+
+    error_mm = error_normalized * normalization_scale
+
+    return error_mm
 
 
 def translation_mse_per_sample(t_pred, t_gt):
@@ -66,6 +74,11 @@ test_dataset = FemurPCRNetDataset(
     dataset_dir=dataset_dir,
     split="test"
 )
+
+sample0 = np.load(test_dataset.files[0])
+normalization_scale = float(sample0["normalization_scale"])
+
+print("\nNormalization scale [mm]:", normalization_scale)
 
 test_loader = DataLoader(
     test_dataset,
@@ -156,7 +169,10 @@ with torch.no_grad():
         translation_loss = loss_dict["translation_loss"]
 
         rot_rad, rot_deg = rotation_error_degrees(R_pred, R_gt)
-        trans_err = translation_error_mm(t_pred, t_gt)
+        trans_err = translation_error_mm(
+            t_pred,
+            t_gt,
+            normalization_scale)
         trans_mse = translation_mse_per_sample(t_pred, t_gt)
 
         batch_size_actual = source.shape[0]

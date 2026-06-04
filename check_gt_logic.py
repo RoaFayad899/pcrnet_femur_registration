@@ -3,18 +3,22 @@ import nibabel as nib
 import open3d as o3d
 from scipy.ndimage import label
 from skimage import measure
+import nibabel as nib
+import open3d as o3d
+from scipy.ndimage import label
+from skimage import measure
 
 
 file_path = r"C:\data_unibas\Healthy-Total-Body-CTs-001.nii"
 
-FRACTURE_GAP_SIZE = 2.0
+FRACTURE_GAP_SIZE = 0.01
 FRACTURE_ANGLE_DEG = 15.0
 PARTIAL_KEEP_PERCENTILE = 55
 
 MAX_SOURCE_ROT_DEG = 6.0
 MAX_TARGET_ROT_DEG = 8.0
-SOURCE_TRANSLATION_RANGE = (-6.0, 6.0)
-TARGET_TRANSLATION_RANGE = (-10.0, 10.0)
+SOURCE_TRANSLATION_RANGE = (-0.05, 0.05)
+TARGET_TRANSLATION_RANGE = (-0.08, 0.08)
 
 rng = np.random.default_rng(42)
 
@@ -41,6 +45,19 @@ def random_rotation_matrix(max_angle_deg):
 
 def random_translation(translation_range):
     return rng.uniform(translation_range[0], translation_range[1], size=3)
+
+########################################################################################################################
+# ==========================================================
+# NORMALIZATION
+# ==========================================================
+
+def normalize_points(points, center, scale):
+    return (points - center) / scale
+
+
+def denormalize_points(points_normalized, center, scale):
+    return points_normalized * scale + center
+########################################################################################################################
 
 
 def apply_rigid(points, center, R, t):
@@ -177,8 +194,41 @@ full_vertices, full_faces, _, _ = measure.marching_cubes(
     spacing=voxel_size_mm
 )
 
+
+# ==========================================================
+# INPUT NORMALIZATION
+# ==========================================================
+
+full_points_mm = full_vertices.copy()
+
+normalization_center = full_points_mm.mean(axis=0)
+
+normalization_scale = np.max(
+    np.linalg.norm(
+        full_points_mm - normalization_center,
+        axis=1
+    )
+)
+
+full_vertices = normalize_points(
+    full_vertices,
+    normalization_center,
+    normalization_scale
+)
+
 full_points = full_vertices.copy()
+
 common_center = full_points.mean(axis=0)
+
+print("\n========== INPUT NORMALIZATION ==========")
+print("Original centroid (mm):", normalization_center)
+print("Normalization scale:", normalization_scale)
+print("Center after normalization:", common_center)
+
+print("Min coordinates:", full_vertices.min(axis=0))
+print("Max coordinates:", full_vertices.max(axis=0))
+
+
 
 partial_vertices, partial_faces = extract_longitudinal_half_mesh(
     full_vertices,
@@ -220,25 +270,11 @@ source_clean_vertices, source_faces = split_mesh_by_fracture(
 )
 
 # ==========================================================
-# TRANSFORMS
+# TRANSFORMS — MATRIX-BASED APPLICATION
 # ==========================================================
 
 R_global, angle_global = random_rotation_matrix(MAX_TARGET_ROT_DEG)
 t_global = random_translation(TARGET_TRANSLATION_RANGE)
-
-target_global = apply_rigid(
-    full_vertices,
-    common_center,
-    R_global,
-    t_global
-)
-
-source_global = apply_rigid(
-    source_clean_vertices,
-    common_center,
-    R_global,
-    t_global
-)
 
 T_global = build_transform_matrix(
     common_center,
@@ -246,17 +282,21 @@ T_global = build_transform_matrix(
     t_global
 )
 
+target_global = apply_transform(
+    full_vertices,
+    T_global
+)
+
+source_global = apply_transform(
+    source_clean_vertices,
+    T_global
+)
+
+
 R_extra, angle_extra = random_rotation_matrix(MAX_SOURCE_ROT_DEG)
 t_extra = random_translation(SOURCE_TRANSLATION_RANGE)
 
 center_extra = source_global.mean(axis=0)
-
-source_misaligned = apply_rigid(
-    source_global,
-    center_extra,
-    R_extra,
-    t_extra
-)
 
 T_extra = build_transform_matrix(
     center_extra,
@@ -264,16 +304,63 @@ T_extra = build_transform_matrix(
     t_extra
 )
 
+source_misaligned = apply_transform(
+    source_global,
+    T_extra
+)
+
+
+# Ground truth: transformation that brings source_misaligned back to source_global
 T_gt = invert_transform(T_extra)
+
+# ==========================================================
+# APPLY GT CORRECTION
+# ==========================================================
+
+source_corrected = apply_transform(
+    source_misaligned,
+    T_gt
+)
+
+alignment_error = np.linalg.norm(
+    source_corrected - source_global,
+    axis=1
+)
+
+print("\n========== GT NUMERICAL PROOF ==========")
+print(
+    "Mean point error source_corrected vs source_global:",
+    alignment_error.mean()
+)
+
+print(
+    "Max point error source_corrected vs source_global:",
+    alignment_error.max()
+)
+
 
 R_gt = T_gt[:3, :3]
 t_gt = T_gt[:3, 3]
 
+print("\nGT Transformation Matrix:")
+print (T_gt)
+
+# ==========================================================
+# GT ROTATION / TRANSLATION LOSS CHECK
+# ==========================================================
+
 R_extra_inv = T_extra[:3, :3].T
 t_extra_inv = -R_extra_inv @ T_extra[:3, 3]
 
-rot_geo_rad, rot_geo_deg = rotation_geodesic_distance(R_gt, R_extra_inv)
-trans_mse = translation_mse(t_gt, t_extra_inv)
+rot_geo_rad, rot_geo_deg = rotation_geodesic_distance(
+    R_gt,
+    R_extra_inv
+)
+
+trans_mse = translation_mse(
+    t_gt,
+    t_extra_inv
+)
 
 print("\n========== GT ROTATION / TRANSLATION LOSS CHECK ==========")
 print("Rotation geodesic distance between T_gt and inverse(T_extra):")
@@ -284,16 +371,28 @@ print("\nTranslation MSE between T_gt and inverse(T_extra):")
 print(trans_mse)
 
 
+# ==========================================================
+# APPLY GT CORRECTION
+# ==========================================================
+
 source_corrected = apply_transform(
     source_misaligned,
     T_gt
 )
 
-alignment_error = np.linalg.norm(source_corrected - source_global, axis=1)
+alignment_error = np.linalg.norm(
+    source_corrected - source_global,
+    axis=1
+)
 
 print("\n========== GT NUMERICAL PROOF ==========")
 print("Mean point error source_corrected vs source_global:", alignment_error.mean())
 print("Max point error source_corrected vs source_global:", alignment_error.max())
+
+
+# ==========================================================
+# CHAMFER CHECK
+# ==========================================================
 
 def one_sided_chamfer_source_to_target(a, b):
     pcd_a = o3d.geometry.PointCloud()
@@ -302,11 +401,22 @@ def one_sided_chamfer_source_to_target(a, b):
     pcd_b = o3d.geometry.PointCloud()
     pcd_b.points = o3d.utility.Vector3dVector(b.astype(np.float64))
 
-    dists_a_to_b = np.asarray(pcd_a.compute_point_cloud_distance(pcd_b))
+    dists_a_to_b = np.asarray(
+        pcd_a.compute_point_cloud_distance(pcd_b)
+    )
+
     return np.mean(dists_a_to_b ** 2)
 
-cd_before = one_sided_chamfer_source_to_target(source_misaligned, target_global)
-cd_after_gt = one_sided_chamfer_source_to_target(source_corrected, target_global)
+
+cd_before = one_sided_chamfer_source_to_target(
+    source_misaligned,
+    target_global
+)
+
+cd_after_gt = one_sided_chamfer_source_to_target(
+    source_corrected,
+    target_global
+)
 
 print("\n========== CHAMFER CHECK ==========")
 print("Chamfer before GT correction:", cd_before)
@@ -340,6 +450,33 @@ source_corrected_mesh = make_mesh(source_corrected, source_faces, [0.1, 0.9, 0.2
 
 target_wire = o3d.geometry.LineSet.create_from_triangle_mesh(target_mesh)
 target_wire.paint_uniform_color([0.0, 0.0, 0.8])
+
+
+# ==========================================================
+# WINDOW 1: TARGET ONLY
+# ==========================================================
+
+o3d.visualization.draw_geometries(
+    [target_mesh],
+    window_name="Target only - full femur",
+    mesh_show_back_face=True
+)
+
+
+# ==========================================================
+# WINDOW 2: SOURCE ONLY
+# ==========================================================
+
+o3d.visualization.draw_geometries(
+    [source_misaligned_mesh],
+    window_name="Source only - misaligned fragment",
+    mesh_show_back_face=True
+)
+
+
+# ==========================================================
+# WINDOW 3: TARGET + MISALIGNED SOURCE + CORRECTED SOURCE
+# ==========================================================
 
 o3d.visualization.draw_geometries(
     [target_mesh, target_wire, source_misaligned_mesh, source_corrected_mesh],
