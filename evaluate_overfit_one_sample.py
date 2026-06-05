@@ -5,22 +5,22 @@ from torch.utils.data import DataLoader
 from pcrnet.data_utils import FemurPCRNetDataset
 from pcrnet.models.pcrnet import iPCRNet
 from pcrnet.losses.geodesic_translation_loss import GeodesicTranslationLoss
-
+from torch.utils.data import DataLoader, Subset
 
 # ==========================================================
 # PATHS
 # ==========================================================
 
 dataset_dir = "/home/roa.fayad/pcrnet_dataset_partial_fragment_to_full_femur"
+checkpoint_path = "/home/roa.fayad/pcrnet_checkpoints_overfit_one_sample/best_model.pth"
 
-checkpoint_path = "/home/roa.fayad/pcrnet_checkpoints_geodesic_translation/best_model.pth"
 
 # ==========================================================
 # SETTINGS
 # ==========================================================
 
-batch_size = 32      #####16, 32
-max_iteration = 30  #######8, 30
+batch_size = 1      #####16, 32
+max_iteration = 1  #######8, 30
 lambda_translation = 10 #######1.0
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -72,22 +72,22 @@ def translation_mse_per_sample(t_pred, t_gt):
 
 test_dataset = FemurPCRNetDataset(
     dataset_dir=dataset_dir,
-    split="test"                              ######split="test"
+    split="train"
 )
 
 sample0 = np.load(test_dataset.files[0])
 normalization_scale = float(sample0["normalization_scale"])
 
-print("\nNormalization scale [mm]:", normalization_scale)
+one_sample_dataset = Subset(test_dataset, [0])
 
 test_loader = DataLoader(
-    test_dataset,
-    batch_size=batch_size,
+    one_sample_dataset,
+    batch_size=1,
     shuffle=False,
     num_workers=0
 )
 
-print("test dataset:", len(test_dataset), "samples")
+print("overfit sample dataset:", len(one_sample_dataset), "sample")
 
 
 # ==========================================================

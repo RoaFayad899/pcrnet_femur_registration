@@ -8,13 +8,14 @@ from pcrnet.models.pcrnet import iPCRNet
 
 
 dataset_dir = "/home/roa.fayad/pcrnet_dataset_partial_fragment_to_full_femur"
-checkpoint_path = "/home/roa.fayad/pcrnet_checkpoints_geodesic_translation/best_model.pth"
+checkpoint_path = "/home/roa.fayad/pcrnet_checkpoints_overfit_one_sample/best_model.pth"
+#checkpoint_path = "/home/roa.fayad/pcrnet_checkpoints_geodesic_translation/best_model.pth"
 
 output_dir = "/home/roa.fayad/pcrnet_iterative_visualization"
 os.makedirs(output_dir, exist_ok=True)
 
 sample_index = 0
-max_iterations = 30 ##########8
+max_iterations = 1 ##########8, 30
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Using device:", device)
@@ -22,7 +23,7 @@ print("Using device:", device)
 
 test_dataset = FemurPCRNetDataset(
     dataset_dir=dataset_dir,
-    split="test"
+    split="train"                  ######split="test"
 )
 
 sample = test_dataset[sample_index]
