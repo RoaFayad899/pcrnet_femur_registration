@@ -173,14 +173,15 @@ with torch.no_grad():
             transformed_source
         )
 
-        rotation_loss = loss_dict["rotation_loss"]
-        translation_loss = loss_dict["translation_loss"]
+        # rotation_loss = loss_dict["rotation_loss"]          #################
+        # translation_loss = loss_dict["translation_loss"]
 
         rot_rad, rot_deg = rotation_error_degrees(R_pred, R_gt)
         trans_err = translation_error_mm(
             t_pred,
             t_gt,
             normalization_scale)
+
         trans_mse = translation_mse_per_sample(t_pred, t_gt)
 
         batch_size_actual = source.shape[0]
@@ -205,7 +206,7 @@ translation_errors_mm = np.array(translation_errors_mm)
 #print("\n========== GEODESIC + TRANSLATION MSE EVALUATION ==========")    #############
 print("\n========== ONE-SIDED CHAMFER OVERFIT EVALUATION ==========")
 
-print(f"Lambda translation: {lambda_translation}")
+#print(f"Lambda translation: {lambda_translation}")    ################
 
 print("\nTotal loss:")
 print(f"Mean:   {total_losses.mean():.6f}")
