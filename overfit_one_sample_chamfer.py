@@ -7,7 +7,7 @@ from pcrnet.data_utils import FemurPCRNetDataset
 from pcrnet.models.pcrnet import iPCRNet
 
 from pcrnet.losses.one_sided_chamfer_distance import OneSidedChamferDistanceLoss
-
+from torch.utils.tensorboard import SummaryWriter
 
 # ==========================================================
 # SETTINGS
@@ -20,6 +20,9 @@ checkpoint_dir = "/home/roa.fayad/pcrnet_checkpoints_overfit_one_sample_chamfer"
 os.makedirs(checkpoint_dir, exist_ok=True)
 
 log_file = os.path.join(checkpoint_dir, "training_log.csv")
+
+tensorboard_dir = os.path.join(checkpoint_dir, "tensorboard")
+writer = SummaryWriter(log_dir=tensorboard_dir)
 
 epochs = 3000
 batch_size = 1
@@ -180,11 +183,19 @@ for epoch in range(epochs):
     print(f"Average train loss: {avg_train_loss:.6f}")
     print(f"Average val loss:   {avg_val_loss:.6f}")
 
+    writer.add_scalar("Loss/train", avg_train_loss, epoch + 1)
+    writer.add_scalar("Loss/val", avg_val_loss, epoch + 1)
+    writer.add_scalar("Learning_rate", current_lr, epoch + 1)
+
     # --------------------------
     # WRITE LOG
     # --------------------------
 
     current_lr = optimizer.param_groups[0]["lr"]
+
+    writer.add_scalar("Loss/train", avg_train_loss, epoch + 1)
+    writer.add_scalar("Loss/val", avg_val_loss, epoch + 1)
+    writer.add_scalar("Learning_rate", current_lr, epoch + 1)
 
     with open(log_file, mode="a", newline="") as f:
         writer = csv.writer(f)
@@ -252,3 +263,5 @@ print("\nDONE: training finished.")
 print("Best validation loss:", best_val_loss)
 print("Checkpoints saved in:", checkpoint_dir)
 print("Log file:", log_file)
+
+writer.close()
