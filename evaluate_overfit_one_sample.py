@@ -1,19 +1,19 @@
 import torch
 import numpy as np
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Subset
 
 from pcrnet.data_utils import FemurPCRNetDataset
 from pcrnet.models.pcrnet import iPCRNet
-from pcrnet.losses.geodesic_translation_loss import GeodesicTranslationLoss
-from torch.utils.data import DataLoader, Subset
+#from pcrnet.losses.geodesic_translation_loss import GeodesicTranslationLoss
+from pcrnet.losses.one_sided_chamfer_distance import OneSidedChamferDistanceLoss
 
 # ==========================================================
 # PATHS
 # ==========================================================
 
 dataset_dir = "/home/roa.fayad/pcrnet_dataset_partial_fragment_to_full_femur"
-checkpoint_path = "/home/roa.fayad/pcrnet_checkpoints_overfit_one_sample/best_model.pth"
-
+#checkpoint_path = "/home/roa.fayad/pcrnet_checkpoints_overfit_one_sample/best_model.pth"
+checkpoint_path = "/home/roa.fayad/pcrnet_checkpoints_overfit_one_sample_chamfer/best_model.pth"
 
 # ==========================================================
 # SETTINGS
@@ -115,10 +115,10 @@ print("max_iteration:", checkpoint["max_iteration"])
 # LOSS
 # ==========================================================
 
-criterion = GeodesicTranslationLoss(
-    lambda_translation=lambda_translation
-)
+# criterion = GeodesicTranslationLoss(
+#     lambda_translation=lambda_translation)
 
+criterion = OneSidedChamferDistanceLoss()            ###################
 
 # ==========================================================
 # EVALUATION
@@ -157,14 +157,22 @@ with torch.no_grad():
             print("\nt_gt first 3:")
             print(t_gt[:3])
 
-        loss_dict = criterion(
-            R_pred,
-            t_pred,
-            R_gt,
-            t_gt
+        # loss_dict = criterion(            ######################
+        #     R_pred,
+        #     t_pred,
+        #     R_gt,
+        #     t_gt
+        # )
+        #
+        # total_loss = loss_dict["total_loss"]
+
+        transformed_source = result["transformed_source"]
+
+        total_loss = criterion(
+            target,
+            transformed_source
         )
 
-        total_loss = loss_dict["total_loss"]
         rotation_loss = loss_dict["rotation_loss"]
         translation_loss = loss_dict["translation_loss"]
 
@@ -194,7 +202,8 @@ rotation_errors_deg = np.array(rotation_errors_deg)
 translation_mse_values = np.array(translation_mse_values)
 translation_errors_mm = np.array(translation_errors_mm)
 
-print("\n========== GEODESIC + TRANSLATION MSE EVALUATION ==========")
+#print("\n========== GEODESIC + TRANSLATION MSE EVALUATION ==========")    #############
+print("\n========== ONE-SIDED CHAMFER OVERFIT EVALUATION ==========")
 
 print(f"Lambda translation: {lambda_translation}")
 

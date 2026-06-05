@@ -5,7 +5,8 @@ import torch
 from torch.utils.data import DataLoader, Subset
 from pcrnet.data_utils import FemurPCRNetDataset
 from pcrnet.models.pcrnet import iPCRNet
-from pcrnet.losses.geodesic_translation_loss import GeodesicTranslationLoss
+
+from pcrnet.losses.one_sided_chamfer_distance import OneSidedChamferDistanceLoss
 
 
 # ==========================================================
@@ -14,7 +15,8 @@ from pcrnet.losses.geodesic_translation_loss import GeodesicTranslationLoss
 
 dataset_dir = "/home/roa.fayad/pcrnet_dataset_partial_fragment_to_full_femur"  #dataset_dir = r"C:\data_unibas\pcrnet_dataset_partial_fragment_to_full_femur"
 
-checkpoint_dir = "/home/roa.fayad/pcrnet_checkpoints_overfit_one_sample"
+checkpoint_dir = "/home/roa.fayad/pcrnet_checkpoints_overfit_one_sample_chamfer"
+
 os.makedirs(checkpoint_dir, exist_ok=True)
 
 log_file = os.path.join(checkpoint_dir, "training_log.csv")
@@ -63,8 +65,8 @@ val_loader = DataLoader(
 
 model = iPCRNet().to(device)
 
-criterion = GeodesicTranslationLoss(lambda_translation=10)
 
+criterion = OneSidedChamferDistanceLoss()
 
 
 optimizer = torch.optim.Adam(
@@ -111,8 +113,7 @@ for epoch in range(epochs):
         source = batch["source"].to(device)
         target = batch["target"].to(device)
 
-        R_gt = batch["R_gt"].to(device)
-        t_gt = batch["t_gt"].to(device)
+
 
         optimizer.zero_grad()
 
@@ -122,17 +123,12 @@ for epoch in range(epochs):
             max_iteration=max_iteration
         )
 
-        R_pred = result["est_R"]
-        t_pred = result["est_t"]
+        transformed_source = result["transformed_source"]
 
-        loss_dict = criterion(
-            R_pred,
-            t_pred,
-            R_gt,
-            t_gt
+        loss = criterion(
+            target,
+            transformed_source
         )
-
-        loss = loss_dict["total_loss"]
 
         loss.backward()
         optimizer.step()
@@ -170,17 +166,12 @@ for epoch in range(epochs):
                 max_iteration=max_iteration
             )
 
-            R_pred = result["est_R"]
-            t_pred = result["est_t"]
+            transformed_source = result["transformed_source"]
 
-            loss_dict = criterion(
-                R_pred,
-                t_pred,
-                R_gt,
-                t_gt
+            loss = criterion(
+                target,
+                transformed_source
             )
-
-            loss = loss_dict["total_loss"]
 
             val_loss_total += loss.item()
 
