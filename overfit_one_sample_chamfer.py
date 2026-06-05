@@ -22,7 +22,7 @@ os.makedirs(checkpoint_dir, exist_ok=True)
 log_file = os.path.join(checkpoint_dir, "training_log.csv")
 
 tensorboard_dir = os.path.join(checkpoint_dir, "tensorboard")
-writer = SummaryWriter(log_dir=tensorboard_dir)
+tb_writer = SummaryWriter(log_dir=tensorboard_dir)
 
 epochs = 3000
 batch_size = 1
@@ -82,9 +82,9 @@ optimizer = torch.optim.Adam(
 # LOG FILE
 # ==========================================================
 
-with open(log_file, mode="w", newline="") as f:
-    writer = csv.writer(f)
-    writer.writerow([
+with open(log_file, mode="a", newline="") as f:
+    csv_writer = csv.writer(f)
+    csv_writer.writerow([
         "epoch",
         "train_loss",
         "val_loss",
@@ -183,23 +183,19 @@ for epoch in range(epochs):
     print(f"Average train loss: {avg_train_loss:.6f}")
     print(f"Average val loss:   {avg_val_loss:.6f}")
 
-    writer.add_scalar("Loss/train", avg_train_loss, epoch + 1)
-    writer.add_scalar("Loss/val", avg_val_loss, epoch + 1)
-    writer.add_scalar("Learning_rate", current_lr, epoch + 1)
-
     # --------------------------
-    # WRITE LOG
+    # WRITE LOG + TENSORBOARD
     # --------------------------
 
     current_lr = optimizer.param_groups[0]["lr"]
 
-    writer.add_scalar("Loss/train", avg_train_loss, epoch + 1)
-    writer.add_scalar("Loss/val", avg_val_loss, epoch + 1)
-    writer.add_scalar("Learning_rate", current_lr, epoch + 1)
+    tb_writer.add_scalar("Loss/train", avg_train_loss, epoch + 1)
+    tb_writer.add_scalar("Loss/val", avg_val_loss, epoch + 1)
+    tb_writer.add_scalar("Learning_rate", current_lr, epoch + 1)
 
     with open(log_file, mode="a", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerow([
+        csv_writer = csv.writer(f)
+        csv_writer.writerow([
             epoch + 1,
             avg_train_loss,
             avg_val_loss,
@@ -264,4 +260,4 @@ print("Best validation loss:", best_val_loss)
 print("Checkpoints saved in:", checkpoint_dir)
 print("Log file:", log_file)
 
-writer.close()
+tb_writer.close()
