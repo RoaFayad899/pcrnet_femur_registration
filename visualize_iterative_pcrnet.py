@@ -10,15 +10,17 @@ from pcrnet.models.pcrnet import iPCRNet
 dataset_dir = "/home/roa.fayad/pcrnet_dataset_partial_fragment_to_full_femur"
 #checkpoint_path = "/home/roa.fayad/pcrnet_checkpoints_overfit_one_sample/best_model.pth"  #################
 #checkpoint_path = "/home/roa.fayad/pcrnet_checkpoints_geodesic_translation/best_model.pth"
-checkpoint_path = "/home/roa.fayad/pcrnet_checkpoints_overfit_one_sample_chamfer/best_model.pth"
+#checkpoint_path = "/home/roa.fayad/pcrnet_checkpoints_overfit_one_sample_chamfer/best_model.pth"
+checkpoint_dir = "/home/roa.fayad/pcrnet_checkpoints_overfit_one_sample_chamfer_iter5/best_model.pth"
 
 #output_dir = "/home/roa.fayad/pcrnet_iterative_visualization"  ####################
-output_dir = "/home/roa.fayad/pcrnet_iterative_visualization_overfit_chamfer"
+#output_dir = "/home/roa.fayad/pcrnet_iterative_visualization_overfit_chamfer"
+output_dir = "/home/roa.fayad/pcrnet_iterative_visualization_overfit_chamfer_itr5"
 
 os.makedirs(output_dir, exist_ok=True)
 
 sample_index = 0
-max_iterations = 1 ##########8, 30
+max_iterations = 5 ##########8, 30
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Using device:", device)
