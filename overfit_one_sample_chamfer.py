@@ -26,7 +26,7 @@ log_file = os.path.join(checkpoint_dir, "training_log.csv")
 tensorboard_dir = os.path.join(checkpoint_dir, "tensorboard")
 tb_writer = SummaryWriter(log_dir=tensorboard_dir)
 
-epochs = 3000             ##########################
+epochs = 6000             ##########################
 batch_size = 1            ########################
 learning_rate = 1e-5
 max_iteration = 5          ########################
