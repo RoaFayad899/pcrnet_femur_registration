@@ -4,7 +4,7 @@ import torch
 
 from torch.utils.data import DataLoader, Subset
 from pcrnet.data_utils import FemurPCRNetDataset
-from pcrnet.models.pcrnet import iPCRNet
+from pcrnet.models.pcrnet_6Drepresentation import iPCRNet #########################
 
 from pcrnet.losses.one_sided_chamfer_distance import OneSidedChamferDistanceLoss
 from torch.utils.tensorboard import SummaryWriter
@@ -25,10 +25,10 @@ log_file = os.path.join(checkpoint_dir, "training_log.csv")
 tensorboard_dir = os.path.join(checkpoint_dir, "tensorboard")
 tb_writer = SummaryWriter(log_dir=tensorboard_dir)
 
-epochs = 3000
-batch_size = 1
+epochs = 3000             ##########################
+batch_size = 1            ########################
 learning_rate = 1e-5
-max_iteration = 30
+max_iteration = 1          ########################
 
 save_every = 5
 

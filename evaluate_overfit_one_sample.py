@@ -3,7 +3,7 @@ import numpy as np
 from torch.utils.data import DataLoader, Subset
 
 from pcrnet.data_utils import FemurPCRNetDataset
-from pcrnet.models.pcrnet import iPCRNet
+from pcrnet.models.pcrnet_6Drepresentation import iPCRNet   #######################
 #from pcrnet.losses.geodesic_translation_loss import GeodesicTranslationLoss
 from pcrnet.losses.one_sided_chamfer_distance import OneSidedChamferDistanceLoss
 
@@ -13,14 +13,14 @@ from pcrnet.losses.one_sided_chamfer_distance import OneSidedChamferDistanceLoss
 
 dataset_dir = "/home/roa.fayad/pcrnet_dataset_partial_fragment_to_full_femur"
 #checkpoint_path = "/home/roa.fayad/pcrnet_checkpoints_overfit_one_sample/best_model.pth"    #############
-#checkpoint_path = "/home/roa.fayad/pcrnet_checkpoints_overfit_one_sample_chamfer/best_model.pth"
-checkpoint_dir = "/home/roa.fayad/pcrnet_checkpoints_overfit_one_sample_chamfer_iter30/best_model.pth"
+checkpoint_path = "/home/roa.fayad/pcrnet_checkpoints_overfit_one_sample_chamfer/best_model.pth"
+#checkpoint_dir = "/home/roa.fayad/pcrnet_checkpoints_overfit_one_sample_chamfer_iter30/best_model.pth"
 # ==========================================================
 # SETTINGS
 # ==========================================================
 
 batch_size = 1      #####16, 32
-max_iteration = 30  #######8, 30
+max_iteration = 1  #######8, 30
 lambda_translation = 10 #######1.0
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
