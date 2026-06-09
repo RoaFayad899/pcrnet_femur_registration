@@ -10,12 +10,11 @@ import matplotlib.pyplot as plt
 
 
 
-log_file = "/home/roa.fayad/pcrnet_checkpoints_overfit_one_sample_chamfer/training_log.csv"
+log_file = "/home/roa.fayad/pcrnet_checkpoints_6d_chamfer_overfit/training_log.csv"
 
 output_figure = (
-    "/home/roa.fayad/pcrnet_checkpoints_overfit_one_sample_chamfer/loss_curves.png"
+    "/home/roa.fayad/pcrnet_checkpoints_6d_chamfer_overfit/loss_curves.png"
 )
-
 
 
 df = pd.read_csv(log_file)
