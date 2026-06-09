@@ -4,7 +4,7 @@ import torch
 
 from torch.utils.data import DataLoader, Subset
 from pcrnet.data_utils import FemurPCRNetDataset
-from pcrnet.models.pcrnet import iPCRNet
+from pcrnet.models.pcrnet_6Drepresentation import iPCRNet ###############
 from pcrnet.losses.geodesic_translation_loss import GeodesicTranslationLoss
 
 
@@ -14,7 +14,7 @@ from pcrnet.losses.geodesic_translation_loss import GeodesicTranslationLoss
 
 dataset_dir = "/home/roa.fayad/pcrnet_dataset_partial_fragment_to_full_femur"  #dataset_dir = r"C:\data_unibas\pcrnet_dataset_partial_fragment_to_full_femur"
 
-checkpoint_dir = "/home/roa.fayad/pcrnet_checkpoints_overfit_one_sample_msegeodesic_6drepresentation"  ##############
+checkpoint_dir = "/home/roa.fayad/pcrnet_checkpoints_overfit_one_sample_msegeodesic_6drepresentation_iter1"  ##############
 
 os.makedirs(checkpoint_dir, exist_ok=True)
 
