@@ -10,10 +10,10 @@ import matplotlib.pyplot as plt
 
 
 
-log_file = "/home/roa.fayad/pcrnet_checkpoints_6d_chamfer_overfit_iter5/training_log.csv"
+log_file = "/home/roa.fayad/pcrnet_checkpoints_6d_chamfer_overfit_iter5_2/training_log.csv"
 
 output_figure = (
-    "/home/roa.fayad/pcrnet_checkpoints_6d_chamfer_overfit_iter5/loss_curves.png"
+    "/home/roa.fayad/pcrnet_checkpoints_6d_chamfer_overfit_iter5_2/loss_curves.png"
 )
 
 

@@ -15,7 +15,7 @@ dataset_dir = "/home/roa.fayad/pcrnet_dataset_partial_fragment_to_full_femur"
 #checkpoint_path = "/home/roa.fayad/pcrnet_checkpoints_overfit_one_sample/best_model.pth"    #############
 #checkpoint_path = "/home/roa.fayad/pcrnet_checkpoints_overfit_one_sample_chamfer/best_model.pth"
 #checkpoint_dir = "/home/roa.fayad/pcrnet_checkpoints_overfit_one_sample_chamfer_iter30/best_model.pth"
-checkpoint_path = "/home/roa.fayad/pcrnet_checkpoints_6d_chamfer_overfit_iter5/best_model.pth"
+checkpoint_path = "/home/roa.fayad/pcrnet_checkpoints_6d_chamfer_overfit_iter5_2/best_model.pth"
 # ==========================================================
 # SETTINGS
 # ==========================================================

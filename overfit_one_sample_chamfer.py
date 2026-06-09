@@ -17,7 +17,7 @@ dataset_dir = "/home/roa.fayad/pcrnet_dataset_partial_fragment_to_full_femur"  #
 
 #checkpoint_dir = "/home/roa.fayad/pcrnet_checkpoints_overfit_one_sample_chamfer" ################
 #checkpoint_dir = "/home/roa.fayad/pcrnet_checkpoints_overfit_one_sample_chamfer_iter30"
-checkpoint_dir = "/home/roa.fayad/pcrnet_checkpoints_6d_chamfer_overfit_iter5"
+checkpoint_dir = "/home/roa.fayad/pcrnet_checkpoints_6d_chamfer_overfit_iter5_2"
 
 os.makedirs(checkpoint_dir, exist_ok=True)
 
