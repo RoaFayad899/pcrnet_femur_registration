@@ -15,7 +15,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 dataset_dir = "/home/roa.fayad/pcrnet_dataset_partial_fragment_to_full_femur"  #dataset_dir = r"C:\data_unibas\pcrnet_dataset_partial_fragment_to_full_femur"
 
-checkpoint_dir = "/home/roa.fayad/pcrnet_checkpoints_overfit_one_sample_msegeodesic_6drepresentation_iter1_1"  ##############
+checkpoint_dir = "/home/roa.fayad/pcrnet_checkpoints_overfit_one_sample_msegeodesic_6drepresentation_iter1_2"  ##############
 
 os.makedirs(checkpoint_dir, exist_ok=True)
 
@@ -25,9 +25,9 @@ tensorboard_dir = os.path.join(checkpoint_dir, "tensorboard")
 tb_writer = SummaryWriter(log_dir=tensorboard_dir)
 
 
-epochs = 6000
+epochs = 12000
 batch_size = 1
-learning_rate = 1e-5
+learning_rate = 1e-6
 max_iteration = 1
 
 save_every = 5
