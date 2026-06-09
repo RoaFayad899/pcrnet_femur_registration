@@ -7,7 +7,7 @@ from ..ops.transform_functions import PCRNetTransform as transform
 
 
 class iPCRNet(nn.Module):
-    def __init__(self, feature_model=PointNet(), dropout=0.0, pooling='max'):
+    def __init__(self, feature_model=PointNet(), droput=0.0, pooling='max'):
         super().__init__()
         self.feature_model = feature_model
         self.pooling = Pooling(pooling)
@@ -20,7 +20,7 @@ class iPCRNet(nn.Module):
 
         if droput > 0.0:
             self.linear.append(nn.Dropout(droput))
-        self.linear.append(nn.Linear(256, 9))
+        self.linear.append(nn.Linear(256, 7))
 
         self.linear = nn.Sequential(*self.linear)
 
