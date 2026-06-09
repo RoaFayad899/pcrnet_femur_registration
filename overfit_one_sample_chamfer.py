@@ -17,7 +17,7 @@ dataset_dir = "/home/roa.fayad/pcrnet_dataset_partial_fragment_to_full_femur"  #
 
 #checkpoint_dir = "/home/roa.fayad/pcrnet_checkpoints_overfit_one_sample_chamfer" ################
 #checkpoint_dir = "/home/roa.fayad/pcrnet_checkpoints_overfit_one_sample_chamfer_iter30"
-checkpoint_dir = "/home/roa.fayad/pcrnet_checkpoints_6d_chamfer_overfit"
+checkpoint_dir = "/home/roa.fayad/pcrnet_checkpoints_6d_chamfer_overfit_iter5"
 
 os.makedirs(checkpoint_dir, exist_ok=True)
 
@@ -29,7 +29,7 @@ tb_writer = SummaryWriter(log_dir=tensorboard_dir)
 epochs = 3000             ##########################
 batch_size = 1            ########################
 learning_rate = 1e-5
-max_iteration = 1          ########################
+max_iteration = 5          ########################
 
 save_every = 5
 
