@@ -20,7 +20,7 @@ class iPCRNet(nn.Module):
 
         if droput > 0.0:
             self.linear.append(nn.Dropout(droput))
-        self.linear.append(nn.Linear(256, 7))
+        self.linear.append(nn.Linear(256, 9))
 
         self.linear = nn.Sequential(*self.linear)
 
