@@ -10,11 +10,12 @@ import matplotlib.pyplot as plt
 
 
 
-log_file = "/home/roa.fayad/pcrnet_checkpoints_6d_chamfer_overfit_iter5_2/training_log.csv"
+log_file = "/home/roa.fayad/pcrnet_checkpoints_overfit_one_sample_msegeodesic_6drepresentation/training_log.csv"
 
 output_figure = (
-    "/home/roa.fayad/pcrnet_checkpoints_6d_chamfer_overfit_iter5_2/loss_curves.png"
+    "/home/roa.fayad/pcrnet_checkpoints_overfit_one_sample_msegeodesic_6drepresentation/loss_curves.png"
 )
+
 
 
 df = pd.read_csv(log_file)
@@ -43,8 +44,8 @@ plt.plot(
 )
 
 plt.xlabel("Epoch")
-#plt.ylabel("Geodesic + Translation Loss")   ###plt.ylabel("One-Sided Chamfer Loss")
-plt.ylabel("One-Sided Chamfer Loss")
+plt.ylabel("Geodesic + Translation Loss")   ###plt.ylabel("One-Sided Chamfer Loss")
+#plt.ylabel("One-Sided Chamfer Loss")
 plt.title("PCRNet Training and Validation Loss")
 
 # better y-axis scaling

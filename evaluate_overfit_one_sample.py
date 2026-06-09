@@ -4,8 +4,8 @@ from torch.utils.data import DataLoader, Subset
 
 from pcrnet.data_utils import FemurPCRNetDataset
 from pcrnet.models.pcrnet_6Drepresentation import iPCRNet   #######################
-#from pcrnet.losses.geodesic_translation_loss import GeodesicTranslationLoss
-from pcrnet.losses.one_sided_chamfer_distance import OneSidedChamferDistanceLoss
+from pcrnet.losses.geodesic_translation_loss import GeodesicTranslationLoss  #################
+#from pcrnet.losses.one_sided_chamfer_distance import OneSidedChamferDistanceLoss
 
 # ==========================================================
 # PATHS
@@ -15,13 +15,14 @@ dataset_dir = "/home/roa.fayad/pcrnet_dataset_partial_fragment_to_full_femur"
 #checkpoint_path = "/home/roa.fayad/pcrnet_checkpoints_overfit_one_sample/best_model.pth"    #############
 #checkpoint_path = "/home/roa.fayad/pcrnet_checkpoints_overfit_one_sample_chamfer/best_model.pth"
 #checkpoint_dir = "/home/roa.fayad/pcrnet_checkpoints_overfit_one_sample_chamfer_iter30/best_model.pth"
-checkpoint_path = "/home/roa.fayad/pcrnet_checkpoints_6d_chamfer_overfit_iter5_2/best_model.pth"
+checkpoint_path = "/home/roa.fayad/pcrnet_checkpoints_overfit_one_sample_msegeodesic_6drepresentation/best_model.pth"
+
 # ==========================================================
 # SETTINGS
 # ==========================================================
 
 batch_size = 1      #####16, 32
-max_iteration = 5  #######8, 30
+max_iteration = 1  #######8, 30
 lambda_translation = 10 #######1.0
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -116,10 +117,10 @@ print("max_iteration:", checkpoint["max_iteration"])
 # LOSS
 # ==========================================================
 
-# criterion = GeodesicTranslationLoss(
-#     lambda_translation=lambda_translation)
+criterion = GeodesicTranslationLoss(
+    lambda_translation=lambda_translation)
 
-criterion = OneSidedChamferDistanceLoss()            ###################
+#criterion = OneSidedChamferDistanceLoss()            ###################
 
 # ==========================================================
 # EVALUATION
@@ -158,24 +159,24 @@ with torch.no_grad():
             print("\nt_gt first 3:")
             print(t_gt[:3])
 
-        # loss_dict = criterion(            ######################
-        #     R_pred,
-        #     t_pred,
-        #     R_gt,
-        #     t_gt
-        # )
-        #
-        # total_loss = loss_dict["total_loss"]
-
-        transformed_source = result["transformed_source"]
-
-        total_loss = criterion(
-            target,
-            transformed_source
+        loss_dict = criterion(            ###################### active for MSE-geodesic
+            R_pred,
+            t_pred,
+            R_gt,
+            t_gt
         )
 
-        # rotation_loss = loss_dict["rotation_loss"]          #################
-        # translation_loss = loss_dict["translation_loss"]
+        total_loss = loss_dict["total_loss"]   ########################
+
+        # transformed_source = result["transformed_source"] ###########active for chamfer
+        #
+        # total_loss = criterion(
+        #     target,
+        #     transformed_source
+        # )                                                 ############
+
+        rotation_loss = loss_dict["rotation_loss"]          ################# active for MSE-geodesic
+        translation_loss = loss_dict["translation_loss"]    #################
 
         rot_rad, rot_deg = rotation_error_degrees(R_pred, R_gt)
         trans_err = translation_error_mm(
@@ -204,10 +205,10 @@ rotation_errors_deg = np.array(rotation_errors_deg)
 translation_mse_values = np.array(translation_mse_values)
 translation_errors_mm = np.array(translation_errors_mm)
 
-#print("\n========== GEODESIC + TRANSLATION MSE EVALUATION ==========")    #############
-print("\n========== ONE-SIDED CHAMFER OVERFIT EVALUATION ==========")
+print("\n========== GEODESIC + TRANSLATION MSE EVALUATION ==========")    #############
+#print("\n========== ONE-SIDED CHAMFER OVERFIT EVALUATION ==========")
 
-#print(f"Lambda translation: {lambda_translation}")    ################
+print(f"Lambda translation: {lambda_translation}")    ################active for MSE-geodesic
 
 print("\nTotal loss:")
 print(f"Mean:   {total_losses.mean():.6f}")
