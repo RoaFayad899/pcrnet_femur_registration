@@ -2,10 +2,10 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 
-log_file = "/home/roa.fayad/pcrnet_checkpoints_overfit_one_sample_msegeodesic_6drepresentation_800samples_iter1_lambda500/training_log.csv"
+log_file = "/home/roa.fayad/pcrnet_checkpoints_overfit_one_sample_msegeodesic_6drepresentation_800samples_iter1_lambda100/training_log.csv"
 
 output_figure = (
-    "/home/roa.fayad/pcrnet_checkpoints_overfit_one_sample_msegeodesic_6drepresentation_800samples_iter1_lambda500/loss_curves.png"
+    "/home/roa.fayad/pcrnet_checkpoints_overfit_one_sample_msegeodesic_6drepresentation_800samples_iter1_lambda100/loss_curves.png"
 )
 
 

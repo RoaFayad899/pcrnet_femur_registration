@@ -14,7 +14,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 dataset_dir = "/home/roa.fayad/pcrnet_dataset_partial_fragment_to_full_femur"  #dataset_dir = r"C:\data_unibas\pcrnet_dataset_partial_fragment_to_full_femur"
 
-checkpoint_dir = "/home/roa.fayad/pcrnet_checkpoints_overfit_one_sample_msegeodesic_6drepresentation_800samples_iter1_lambda500"   ###r"C:\data_unibas\pcrnet_checkpoints_chamfer"
+checkpoint_dir = "/home/roa.fayad/pcrnet_checkpoints_overfit_one_sample_msegeodesic_6drepresentation_800samples_iter1_lambda100"   ###r"C:\data_unibas\pcrnet_checkpoints_chamfer"
 os.makedirs(checkpoint_dir, exist_ok=True)
 
 log_file = os.path.join(checkpoint_dir, "training_log.csv")
@@ -68,14 +68,19 @@ val_loader = DataLoader(
 
 model = iPCRNet().to(device)
 
-criterion = GeodesicTranslationLoss(lambda_translation= 500)
+criterion = GeodesicTranslationLoss(lambda_translation= 100)
 
 optimizer = torch.optim.Adam(
     model.parameters(),
     lr=learning_rate
 )
 
-
+scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+    optimizer,
+    mode="min",
+    factor=0.5,
+    patience=50
+)
 # ==========================================================
 # LOG FILE
 # ==========================================================
@@ -188,6 +193,8 @@ for epoch in range(epochs):
             val_loss_total += loss.item()
 
     avg_val_loss = val_loss_total / len(val_loader)
+
+    scheduler.step(avg_val_loss)
 
     print(f"Average train loss: {avg_train_loss:.6f}")
     print(f"Average val loss:   {avg_val_loss:.6f}")

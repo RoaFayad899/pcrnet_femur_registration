@@ -13,7 +13,7 @@ from pcrnet.losses.geodesic_translation_loss import GeodesicTranslationLoss
 
 dataset_dir = "/home/roa.fayad/pcrnet_dataset_partial_fragment_to_full_femur"
 
-checkpoint_path = "/home/roa.fayad/pcrnet_checkpoints_overfit_one_sample_msegeodesic_6drepresentation_800samples_iter1_lambda500/best_model.pth"
+checkpoint_path = "/home/roa.fayad/pcrnet_checkpoints_overfit_one_sample_msegeodesic_6drepresentation_800samples_iter1_lambda100/best_model.pth"
 
 # ==========================================================
 # SETTINGS
@@ -21,7 +21,7 @@ checkpoint_path = "/home/roa.fayad/pcrnet_checkpoints_overfit_one_sample_msegeod
 
 batch_size = 32      #####16, 32
 max_iteration = 1  #######8, 30
-lambda_translation = 500 #######1.0
+lambda_translation = 100 #######1.0
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Using device:", device)
