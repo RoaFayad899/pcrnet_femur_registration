@@ -19,7 +19,7 @@ checkpoint_dir = "/home/roa.fayad/pcrnet_checkpoints_overfit_one_sample_msegeode
 #output_dir = "/home/roa.fayad/pcrnet_iterative_visualization"  ####################
 #output_dir = "/home/roa.fayad/pcrnet_iterative_visualization_overfit_chamfer"
 #output_dir = "/home/roa.fayad/pcrnet_iterative_visualization_overfit_chamfer_itr30"
-output_dir = "/home/roa.fayad/pcrnet_checkpoints_overfit_one_sample_msegeodesic_6drepresentation_800samples_iter1"
+output_dir = "/home/roa.fayad/pcrnet_visualization_overfit_one_sample_msegeodesic_6drepresentation_800samples_iter1"
 
 os.makedirs(output_dir, exist_ok=True)
 
