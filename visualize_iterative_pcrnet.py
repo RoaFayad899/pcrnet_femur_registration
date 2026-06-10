@@ -13,18 +13,18 @@ dataset_dir = "/home/roa.fayad/pcrnet_dataset_partial_fragment_to_full_femur"
 #checkpoint_dir = "/home/roa.fayad/pcrnet_checkpoints_overfit_one_sample_chamfer/best_model.pth"
 #checkpoint_dir = "/home/roa.fayad/pcrnet_checkpoints_overfit_one_sample_chamfer_iter30/best_model.pth"
 #checkpoint_dir = "/home/roa.fayad/pcrnet_checkpoints_6d_chamfer_overfit_iter5_2/best_model.pth"
-checkpoint_dir = "/home/roa.fayad/pcrnet_checkpoints_overfit_one_sample_msegeodesic_6drepresentation_iter5_lambda100/best_model.pth"
+checkpoint_dir = "/home/roa.fayad/pcrnet_checkpoints_overfit_one_sample_msegeodesic_6drepresentation_800samples_iter1/best_model.pth"
 
 
 #output_dir = "/home/roa.fayad/pcrnet_iterative_visualization"  ####################
 #output_dir = "/home/roa.fayad/pcrnet_iterative_visualization_overfit_chamfer"
 #output_dir = "/home/roa.fayad/pcrnet_iterative_visualization_overfit_chamfer_itr30"
-output_dir = "/home/roa.fayad/pcrnet_iterative_visualization_overfit_one_sample_msegeodesic_6drepresentation_iter5_lambda100"
+output_dir = "/home/roa.fayad/pcrnet_checkpoints_overfit_one_sample_msegeodesic_6drepresentation_800samples_iter1"
 
 os.makedirs(output_dir, exist_ok=True)
 
 sample_index = 0
-max_iterations = 5 ##########8, 30
+max_iterations = 1 ##########8, 30
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Using device:", device)
@@ -32,7 +32,7 @@ print("Using device:", device)
 
 test_dataset = FemurPCRNetDataset(
     dataset_dir=dataset_dir,
-    split="train"                  ######split="test"
+    split="test"                  ######split="test"                     #############################
 )
 
 sample = test_dataset[sample_index]

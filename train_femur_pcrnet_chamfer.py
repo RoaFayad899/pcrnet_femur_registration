@@ -4,25 +4,28 @@ import torch
 from torch.utils.data import DataLoader
 
 from pcrnet.data_utils import FemurPCRNetDataset
-from pcrnet.models.pcrnet import iPCRNet
+from pcrnet.models.pcrnet_6Drepresentation import iPCRNet      ################
 from pcrnet.losses.geodesic_translation_loss import GeodesicTranslationLoss
 
-
+from torch.utils.tensorboard import SummaryWriter
 # ==========================================================
 # SETTINGS
 # ==========================================================
 
 dataset_dir = "/home/roa.fayad/pcrnet_dataset_partial_fragment_to_full_femur"  #dataset_dir = r"C:\data_unibas\pcrnet_dataset_partial_fragment_to_full_femur"
 
-checkpoint_dir = "/home/roa.fayad/pcrnet_checkpoints_geodesic_translation"   ###r"C:\data_unibas\pcrnet_checkpoints_chamfer"
+checkpoint_dir = "/home/roa.fayad/pcrnet_checkpoints_overfit_one_sample_msegeodesic_6drepresentation_800samples_iter1"   ###r"C:\data_unibas\pcrnet_checkpoints_chamfer"
 os.makedirs(checkpoint_dir, exist_ok=True)
 
 log_file = os.path.join(checkpoint_dir, "training_log.csv")
 
-epochs = 300  ####100 or 2
+tensorboard_dir = os.path.join(checkpoint_dir, "tensorboard")
+tb_writer = SummaryWriter(log_dir=tensorboard_dir)
+
+epochs = 1000  ####100 or 2
 batch_size = 32  #######16 or 2
-learning_rate = 1e-4
-max_iteration = 30 ##########8 or 1
+learning_rate = 1e-4 #############
+max_iteration = 1 ##########8 or 1
 
 save_every = 5
 
@@ -65,7 +68,7 @@ val_loader = DataLoader(
 
 model = iPCRNet().to(device)
 
-criterion = GeodesicTranslationLoss(lambda_translation=10)
+criterion = GeodesicTranslationLoss(lambda_translation= 100)
 
 optimizer = torch.optim.Adam(
     model.parameters(),
@@ -78,8 +81,8 @@ optimizer = torch.optim.Adam(
 # ==========================================================
 
 with open(log_file, mode="w", newline="") as f:
-    writer = csv.writer(f)
-    writer.writerow([
+    csv_writer = csv.writer(f)
+    csv_writer.writerow([
         "epoch",
         "train_loss",
         "val_loss",
@@ -195,9 +198,13 @@ for epoch in range(epochs):
 
     current_lr = optimizer.param_groups[0]["lr"]
 
+    tb_writer.add_scalar("Loss/train", avg_train_loss, epoch + 1)
+    tb_writer.add_scalar("Loss/val", avg_val_loss, epoch + 1)
+    tb_writer.add_scalar("Learning_rate", current_lr, epoch + 1)
+
     with open(log_file, mode="a", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerow([
+        csv_writer = csv.writer(f)
+        csv_writer.writerow([
             epoch + 1,
             avg_train_loss,
             avg_val_loss,
@@ -261,3 +268,5 @@ print("\nDONE: training finished.")
 print("Best validation loss:", best_val_loss)
 print("Checkpoints saved in:", checkpoint_dir)
 print("Log file:", log_file)
+
+tb_writer.close()
