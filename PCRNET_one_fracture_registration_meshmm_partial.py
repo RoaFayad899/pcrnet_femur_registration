@@ -13,7 +13,7 @@ from skimage import measure
 
 file_path = r"C:\data_unibas\Healthy-Total-Body-CTs-001.nii"
 
-output_dir = r"C:\data_unibas\pcrnet_dataset_partial_fragment_to_full_femur"
+output_dir = r"C:\data_unibas\pcrnet_dataset_partial_fragment_to_full_femur_large"
 os.makedirs(output_dir, exist_ok=True)
 
 N_TOTAL_SAMPLES = 2000
@@ -29,13 +29,16 @@ RANDOM_SEED = 42
 FRACTURE_ANGLE_DEG = 15.0
 PARTIAL_KEEP_PERCENTILE = 55
 
-MAX_SOURCE_ROT_DEG = 6.0
-MAX_TARGET_ROT_DEG = 8.0
+MAX_SOURCE_ROT_DEG = 45.0
+MAX_TARGET_ROT_DEG = 180.0
 
 FRACTURE_GAP_SIZE = 0.01
 
-SOURCE_TRANSLATION_RANGE = (-0.05, 0.05)
-TARGET_TRANSLATION_RANGE = (-0.08, 0.08)
+SOURCE_TRANSLATION_RANGE = (-0.10, 0.10)
+
+TARGET_TRANSLATION_MM = 10.0
+
+
 
 rng = np.random.default_rng(RANDOM_SEED)
 
@@ -178,6 +181,11 @@ normalization_scale = np.max(
         full_points_mm - normalization_center,
         axis=1
     )
+)
+
+TARGET_TRANSLATION_RANGE = (
+    -TARGET_TRANSLATION_MM / normalization_scale,
+     TARGET_TRANSLATION_MM / normalization_scale
 )
 
 full_vertices = normalize_points(

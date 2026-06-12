@@ -12,9 +12,9 @@ from torch.utils.tensorboard import SummaryWriter
 # SETTINGS
 # ==========================================================
 
-dataset_dir = "/home/roa.fayad/pcrnet_dataset_partial_fragment_to_full_femur"  #dataset_dir = r"C:\data_unibas\pcrnet_dataset_partial_fragment_to_full_femur"
+dataset_dir = "/home/roa.fayad/pcrnet_dataset_partial_fragment_to_full_femur_large"  #dataset_dir = r"C:\data_unibas\pcrnet_dataset_partial_fragment_to_full_femur"
 
-checkpoint_dir = "/home/roa.fayad/pcrnet_checkpoints_msegeodesic_6drepresentation_1600samples_iter1_small"   ###r"C:\data_unibas\pcrnet_checkpoints_chamfer"
+checkpoint_dir = "/home/roa.fayad/pcrnet_checkpoints_msegeodesic_6drepresentation_1600samples_iter1_large"   ###r"C:\data_unibas\pcrnet_checkpoints_chamfer"
 os.makedirs(checkpoint_dir, exist_ok=True)
 
 log_file = os.path.join(checkpoint_dir, "training_log.csv")
