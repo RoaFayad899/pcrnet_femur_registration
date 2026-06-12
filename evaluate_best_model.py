@@ -72,7 +72,7 @@ def translation_mse_per_sample(t_pred, t_gt):
 
 test_dataset = FemurPCRNetDataset(
     dataset_dir=dataset_dir,
-    split="test"                              ######split="test"
+    split="test"                              ######split="train"
 )
 
 sample0 = np.load(test_dataset.files[0])
