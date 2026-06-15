@@ -11,9 +11,9 @@ from pcrnet.losses.geodesic_translation_loss import GeodesicTranslationLoss
 # PATHS
 # ==========================================================
 
-dataset_dir = "/home/roa.fayad/pcrnet_dataset_partial_fragment_to_full_femur_large"
+dataset_dir = "/home/roa.fayad/pcrnet_dataset_partial_fragment_to_full_femur_large2"
 
-checkpoint_path = "/home/roa.fayad/pcrnet_checkpoints_msegeodesic_6drepresentation_1600samples_iter5loss_large/best_model.pth"
+checkpoint_path = "/home/roa.fayad/pcrnet_checkpoints_msegeodesic_6drepresentation_4000samples_iter5loss_large/best_model.pth"
 
 # ==========================================================
 # SETTINGS

@@ -13,10 +13,10 @@ from skimage import measure
 
 file_path = r"C:\data_unibas\Healthy-Total-Body-CTs-001.nii"
 
-output_dir = r"C:\data_unibas\pcrnet_dataset_partial_fragment_to_full_femur_large"
+output_dir = r"C:\data_unibas\pcrnet_dataset_partial_fragment_to_full_femur_large2"
 os.makedirs(output_dir, exist_ok=True)
 
-N_TOTAL_SAMPLES = 2000
+N_TOTAL_SAMPLES = 5000
 N_SAMPLES_PER_FRAGMENT = N_TOTAL_SAMPLES // 2
 
 N_SOURCE_POINTS = 1024
