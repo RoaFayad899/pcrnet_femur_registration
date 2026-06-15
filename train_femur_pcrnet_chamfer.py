@@ -4,7 +4,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from pcrnet.data_utils import FemurPCRNetDataset
-from pcrnet.models.pcrnet_6Drepresentation import iPCRNet      ################
+from pcrnet.models.pcrnet_iterativeloss import iPCRNet      ################
 from pcrnet.losses.geodesic_translation_loss import GeodesicTranslationLoss
 
 from torch.utils.tensorboard import SummaryWriter
@@ -14,7 +14,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 dataset_dir = "/home/roa.fayad/pcrnet_dataset_partial_fragment_to_full_femur_large"  #dataset_dir = r"C:\data_unibas\pcrnet_dataset_partial_fragment_to_full_femur"
 
-checkpoint_dir = "/home/roa.fayad/pcrnet_checkpoints_msegeodesic_6drepresentation_1600samples_iter1_large"   ###r"C:\data_unibas\pcrnet_checkpoints_chamfer"
+checkpoint_dir = "/home/roa.fayad/pcrnet_checkpoints_msegeodesic_6drepresentation_1600samples_iter5loss_large"   ###r"C:\data_unibas\pcrnet_checkpoints_chamfer"
 os.makedirs(checkpoint_dir, exist_ok=True)
 
 log_file = os.path.join(checkpoint_dir, "training_log.csv")
@@ -22,10 +22,10 @@ log_file = os.path.join(checkpoint_dir, "training_log.csv")
 tensorboard_dir = os.path.join(checkpoint_dir, "tensorboard")
 tb_writer = SummaryWriter(log_dir=tensorboard_dir)
 
-epochs = 1000  ####100 or 2
-batch_size = 32  #######16 or 2
-learning_rate = 1e-4 #############
-max_iteration = 1 ##########8 or 1
+epochs = 1000  #####################
+batch_size = 32  ####################
+learning_rate = 1e-4 #########################
+max_iteration = 5 #########################
 
 save_every = 5
 
@@ -130,17 +130,22 @@ for epoch in range(epochs):
             max_iteration=max_iteration
         )
 
-        R_pred = result["est_R"]
-        t_pred = result["est_t"]
+        loss = 0.0
 
-        loss_dict = criterion(
-            R_pred,
-            t_pred,
-            R_gt,
-            t_gt
-        )
+        for R_i, t_i in zip(
+                result["intermediate_Rs"],
+                result["intermediate_ts"]
+        ):
+            loss_dict_i = criterion(
+                R_i,
+                t_i,
+                R_gt,
+                t_gt
+            )
 
-        loss = loss_dict["total_loss"]
+            loss = loss + loss_dict_i["total_loss"]
+
+        loss = loss / len(result["intermediate_Rs"])
 
         loss.backward()
         optimizer.step()
@@ -178,17 +183,22 @@ for epoch in range(epochs):
                 max_iteration=max_iteration
             )
 
-            R_pred = result["est_R"]
-            t_pred = result["est_t"]
+            loss = 0.0
 
-            loss_dict = criterion(
-                R_pred,
-                t_pred,
-                R_gt,
-                t_gt
-            )
+            for R_i, t_i in zip(
+                    result["intermediate_Rs"],
+                    result["intermediate_ts"]
+            ):
+                loss_dict_i = criterion(
+                    R_i,
+                    t_i,
+                    R_gt,
+                    t_gt
+                )
 
-            loss = loss_dict["total_loss"]
+                loss = loss + loss_dict_i["total_loss"]
+
+            loss = loss / len(result["intermediate_Rs"])
 
             val_loss_total += loss.item()
 
