@@ -2,8 +2,11 @@ import torch
 import numpy as np
 from torch.utils.data import DataLoader
 
-from pcrnet.data_utils import FemurPCRNetDataset
-from pcrnet.models.pcrnet_iterativeloss import iPCRNet    #################
+#from pcrnet.data_utils import FemurPCRNetDataset
+#from pcrnet.models.pcrnet_iterativeloss import iPCRNet    #################
+from pcrnet.data_utils.femur_dataset_fpfh import FemurPCRNetDatasetFPFH ############
+from pcrnet.models.pcrnet_iterativeloss_fpfh import iPCRNet  ################
+
 from pcrnet.losses.geodesic_translation_loss import GeodesicTranslationLoss
 
 
@@ -11,9 +14,9 @@ from pcrnet.losses.geodesic_translation_loss import GeodesicTranslationLoss
 # PATHS
 # ==========================================================
 
-dataset_dir = "/home/roa.fayad/pcrnet_dataset_partial_fragment_to_full_femur_large2"
+dataset_dir = "/home/roa.fayad/pcrnet_dataset_partial_fragment_to_full_femur_large_fpfh"
 
-checkpoint_path = "/home/roa.fayad/pcrnet_checkpoints_msegeodesic_6drepresentation_4000samples_iter5loss_large/best_model.pth"
+checkpoint_path = "/home/roa.fayad/pcrnet_checkpoints_msegeodesic_6drepresentation_4000samples_iter5loss_large_fpfh/best_model.pth"
 
 # ==========================================================
 # SETTINGS
@@ -70,7 +73,7 @@ def translation_mse_per_sample(t_pred, t_gt):
 # DATASET
 # ==========================================================
 
-test_dataset = FemurPCRNetDataset(
+test_dataset = FemurPCRNetDatasetFPFH(
     dataset_dir=dataset_dir,
     split="test"                              ######split="train"
 )
