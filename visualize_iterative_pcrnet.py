@@ -7,24 +7,24 @@ from pcrnet.data_utils import FemurPCRNetDataset
 from pcrnet.models.pcrnet_iterativeloss import iPCRNet  ##############
 
 
-dataset_dir = "/home/roa.fayad/pcrnet_dataset_partial_fragment_to_full_femur_large2"
+dataset_dir = "/home/roa.fayad/pcrnet_dataset_partial_fragment_to_full_femur_small"
 #checkpoint_dir = "/home/roa.fayad/pcrnet_checkpoints_overfit_one_sample/best_model.pth"  #################
 #checkpoint_dir = "/home/roa.fayad/pcrnet_checkpoints_geodesic_translation/best_model.pth"
 #checkpoint_dir = "/home/roa.fayad/pcrnet_checkpoints_overfit_one_sample_chamfer/best_model.pth"
 #checkpoint_dir = "/home/roa.fayad/pcrnet_checkpoints_overfit_one_sample_chamfer_iter30/best_model.pth"
 #checkpoint_dir = "/home/roa.fayad/pcrnet_checkpoints_6d_chamfer_overfit_iter5_2/best_model.pth"
-checkpoint_dir = "/home/roa.fayad/pcrnet_checkpoints_msegeodesic_6drepresentation_4000samples_iter5loss_large/best_model.pth"
+checkpoint_dir = "/home/roa.fayad/pcrnet_checkpoints_msegeodesic_6drepresentation_1600samples_iter1_small/best_model.pth"
 
 
 #output_dir = "/home/roa.fayad/pcrnet_iterative_visualization"  ####################
 #output_dir = "/home/roa.fayad/pcrnet_iterative_visualization_overfit_chamfer"
 #output_dir = "/home/roa.fayad/pcrnet_iterative_visualization_overfit_chamfer_itr30"
-output_dir = "/home/roa.fayad/pcrnet_visualization_msegeodesic_6drepresentation_4000samples_iter5loss_large"
+output_dir = "/home/roa.fayad/pcrnet_visualization_msegeodesic_6drepresentation_1600samples_iter1_small"
 
 os.makedirs(output_dir, exist_ok=True)
 
 sample_index = 0
-max_iterations = 5 ##########8, 30
+max_iterations = 1 ##########8, 30
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Using device:", device)
