@@ -41,15 +41,12 @@ class FemurPCRNetDatasetFPFH(Dataset):
         source_fpfh = data["source_fpfh"].astype(np.float32)    # [N, 33]
         target_fpfh = data["target_fpfh"].astype(np.float32)    # [N, 33]
 
-        source_input = np.concatenate(
-            [source_xyz, source_fpfh],
-            axis=1
-        ).astype(np.float32)                                    # [N, 36]
 
-        target_input = np.concatenate(
-            [target_xyz, target_fpfh],
-            axis=1
-        ).astype(np.float32)                                    # [N, 36]
+        source_fpfh = source_fpfh / 200.0
+        target_fpfh = target_fpfh / 200.0
+
+        source_input = np.concatenate([source_xyz, source_fpfh], axis=1).astype(np.float32)
+        target_input = np.concatenate([target_xyz, target_fpfh], axis=1).astype(np.float32)
 
         T_gt = data["T_gt"].astype(np.float32)
         R_gt = data["R_gt"].astype(np.float32)
