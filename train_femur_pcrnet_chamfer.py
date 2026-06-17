@@ -37,12 +37,12 @@ print("Using device:", device)
 # DATASETS AND LOADERS
 # ==========================================================
 
-train_dataset = FemurPCRNetDatasetFPFH(
+train_dataset = FemurPCRNetDataset(
     dataset_dir=dataset_dir,
     split="train"
 )
 
-val_dataset = FemurPCRNetDatasetFPFH(
+val_dataset = FemurPCRNetDataset(
     dataset_dir=dataset_dir,
     split="val"
 )

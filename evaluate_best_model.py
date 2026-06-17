@@ -73,7 +73,7 @@ def translation_mse_per_sample(t_pred, t_gt):
 # DATASET
 # ==========================================================
 
-test_dataset = FemurPCRNetDatasetFPFH(
+test_dataset = FemurPCRNetDataset(
     dataset_dir=dataset_dir,
     split="test"                              ######split="train"
 )
