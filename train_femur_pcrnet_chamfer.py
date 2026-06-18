@@ -74,8 +74,7 @@ criterion = GeodesicTranslationLoss(lambda_translation= 100)
 
 optimizer = torch.optim.Adam(
     model.parameters(),
-    lr=learning_rate,
-    weight_decay=1e-5
+    lr=learning_rate
 )
 
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
