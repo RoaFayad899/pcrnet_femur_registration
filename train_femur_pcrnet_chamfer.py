@@ -14,9 +14,9 @@ from torch.utils.tensorboard import SummaryWriter
 # SETTINGS
 # ==========================================================
 
-dataset_dir = "/home/roa.fayad/pcrnet_dataset_partial_fragment_to_full_femur_small3"  #dataset_dir = r"C:\data_unibas\pcrnet_dataset_partial_fragment_to_full_femur"
+dataset_dir = "/home/roa.fayad/pcrnet_dataset_partial_fragment_to_full_femur_small2"  #dataset_dir = r"C:\data_unibas\pcrnet_dataset_partial_fragment_to_full_femur"
 
-checkpoint_dir = "/home/roa.fayad/pcrnet_checkpoints_msegeodesic_6drepresentation_8000samples_iter1_small3"   ###r"C:\data_unibas\pcrnet_checkpoints_chamfer"
+checkpoint_dir = "/home/roa.fayad/pcrnet_checkpoints_msegeodesic_6drepresentation_4000samples_iter5_small2"   ###r"C:\data_unibas\pcrnet_checkpoints_chamfer"
 os.makedirs(checkpoint_dir, exist_ok=True)
 
 log_file = os.path.join(checkpoint_dir, "training_log.csv")
@@ -27,7 +27,7 @@ tb_writer = SummaryWriter(log_dir=tensorboard_dir)
 epochs = 1000  #####################
 batch_size = 32  ####################
 learning_rate = 1e-4 #########################
-max_iteration = 1 #########################
+max_iteration = 5 #########################
 
 save_every = 5
 
