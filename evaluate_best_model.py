@@ -2,10 +2,11 @@ import torch
 import numpy as np
 from torch.utils.data import DataLoader
 
-from pcrnet.data_utils import FemurPCRNetDataset
-from pcrnet.models.pcrnet_iterativeloss import iPCRNet    #################
+#################
 #from pcrnet.data_utils.femur_dataset_fpfh import FemurPCRNetDatasetFPFH ############
 #from pcrnet.models.pcrnet_iterativeloss_fpfh import iPCRNet  ################
+from pcrnet.data_utils import FemurPCRNetDataset   ####################
+from pcrnet.models.pcrnet_iterativeloss import iPCRNet      ################
 
 from pcrnet.losses.geodesic_translation_loss import GeodesicTranslationLoss
 
@@ -16,7 +17,7 @@ from pcrnet.losses.geodesic_translation_loss import GeodesicTranslationLoss
 
 dataset_dir = "/home/roa.fayad/pcrnet_dataset_partial_fragment_to_full_femur_small2"
 
-checkpoint_path = "/home/roa.fayad/pcrnet_checkpoints_msegeodesic_6drepresentation_1600samples_iter1_small2/best_model.pth"
+checkpoint_path = "/home/roa.fayad/pcrnet_checkpoints_msegeodesic_6drepresentation_4000samples_iter1_small2_L2best_model.pth"
 
 # ==========================================================
 # SETTINGS
@@ -97,7 +98,7 @@ print("test dataset:", len(test_dataset), "samples")
 # MODEL
 # ==========================================================
 
-model = iPCRNet().to(device)
+model = iPCRNet().to(device)             ##############################
 
 checkpoint = torch.load(
     checkpoint_path,

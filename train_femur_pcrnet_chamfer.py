@@ -3,8 +3,10 @@ import csv
 import torch
 from torch.utils.data import DataLoader
 
-from pcrnet.data_utils import FemurPCRNetDataset  ####################
+from pcrnet.data_utils import FemurPCRNetDataset   ####################
 from pcrnet.models.pcrnet_iterativeloss import iPCRNet      ################
+#from pcrnet.data_utils.femur_dataset_fpfh import FemurPCRNetDatasetFPFH #############
+#from pcrnet.models.pcrnet_iterativeloss_fpfh import iPCRNet     ###########
 from pcrnet.losses.geodesic_translation_loss import GeodesicTranslationLoss
 
 from torch.utils.tensorboard import SummaryWriter
@@ -14,7 +16,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 dataset_dir = "/home/roa.fayad/pcrnet_dataset_partial_fragment_to_full_femur_small2"  #dataset_dir = r"C:\data_unibas\pcrnet_dataset_partial_fragment_to_full_femur"
 
-checkpoint_dir = "/home/roa.fayad/pcrnet_checkpoints_msegeodesic_6drepresentation_1600samples_iter1_small2"   ###r"C:\data_unibas\pcrnet_checkpoints_chamfer"
+checkpoint_dir = "/home/roa.fayad/pcrnet_checkpoints_msegeodesic_6drepresentation_4000samples_iter1_small2_L2"   ###r"C:\data_unibas\pcrnet_checkpoints_chamfer"
 os.makedirs(checkpoint_dir, exist_ok=True)
 
 log_file = os.path.join(checkpoint_dir, "training_log.csv")
@@ -66,13 +68,14 @@ val_loader = DataLoader(
 # MODEL, LOSS, OPTIMIZER
 # ==========================================================
 
-model = iPCRNet().to(device)
+model = iPCRNet().to(device)      #######################
 
 criterion = GeodesicTranslationLoss(lambda_translation= 100)
 
 optimizer = torch.optim.Adam(
     model.parameters(),
-    lr=learning_rate
+    lr=learning_rate,
+    weight_decay=1e-5
 )
 
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
