@@ -15,16 +15,16 @@ from pcrnet.losses.geodesic_translation_loss import GeodesicTranslationLoss
 # PATHS
 # ==========================================================
 
-dataset_dir = "/home/roa.fayad/pcrnet_dataset_partial_fragment_to_full_femur_small3"
+dataset_dir = "/home/roa.fayad/pcrnet_dataset_partial_fragment_to_full_femur_small2"
 
-checkpoint_path = "/home/roa.fayad/pcrnet_checkpoints_msegeodesic_6drepresentation_8000samples_iter1_small3/best_model.pth"
+checkpoint_path = "/home/roa.fayad/pcrnet_checkpoints_msegeodesic_6drepresentation_4000samples_iter5_small2/best_model.pth"
 
 # ==========================================================
 # SETTINGS
 # ==========================================================
 
 batch_size = 32      #####16, 32
-max_iteration = 1  #######8, 30
+max_iteration = 5  #######8, 30
 lambda_translation = 100 #######1.0
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
