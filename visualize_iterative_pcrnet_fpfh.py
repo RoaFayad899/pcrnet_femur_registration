@@ -37,8 +37,10 @@ test_dataset = FemurPCRNetDatasetFPFH(
 
 sample = test_dataset[sample_index]
 
-source_xyz = sample["source_xyz"].unsqueeze(0).to(device)
+source = sample["source"].unsqueeze(0).to(device)
 target = sample["target"].unsqueeze(0).to(device)
+
+source_xyz = sample["source_xyz"].unsqueeze(0).to(device)
 
 source_np = sample["source_xyz"].numpy()
 target_np = sample["target_xyz"].numpy()
