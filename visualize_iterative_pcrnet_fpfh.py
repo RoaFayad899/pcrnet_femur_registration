@@ -44,8 +44,8 @@ source_np = sample["source_xyz"].numpy()
 target_np = sample["target_xyz"].numpy()
 
 print("\nLoaded test sample:", sample_index)
-print("source:", source.shape)
-print("target:", target.shape)
+print("source:", source_np.shape)
+print("target:", target_np.shape)
 
 
 model = iPCRNet().to(device)
