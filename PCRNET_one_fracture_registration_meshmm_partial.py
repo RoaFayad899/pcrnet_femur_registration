@@ -13,7 +13,7 @@ from skimage import measure
 
 file_path = r"C:\data_unibas\Healthy-Total-Body-CTs-001.nii"
 
-output_dir = r"C:\data_unibas\pcrnet_dataset_partial_fragment_to_full_femur_small3"
+output_dir = r"C:\data_unibas\pcrnet_dataset_partial_fragment_to_full_femur_large3"
 os.makedirs(output_dir, exist_ok=True)
 
 N_TOTAL_SAMPLES = 10000
@@ -30,14 +30,14 @@ FRACTURE_ANGLE_DEG = 15.0
 PARTIAL_KEEP_PERCENTILE = 55
 
 
-MAX_SOURCE_ROT_DEG = 11.25
+MAX_SOURCE_ROT_DEG = 45.0
 MAX_TARGET_ROT_DEG = 180.0
 
 
 
 FRACTURE_GAP_SIZE = 0.01
 
-SOURCE_TRANSLATION_RANGE = (-0.025, 0.025)  ####
+SOURCE_TRANSLATION_RANGE = (-0.10, 0.10)  ####
 
 TARGET_TRANSLATION_MM = 10.0
 
